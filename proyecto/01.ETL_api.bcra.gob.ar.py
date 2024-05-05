@@ -100,8 +100,16 @@ def get_redshift_dtype(dtype):
 # Start
 baseurl = os.getenv("bcra_baseurl")
 
+conn = redshift_connector.connect(
+     host=os.getenv("aws_srv"),
+     database=os.getenv("aws_db"),
+     port=os.getenv("aws_port"),
+     user=os.getenv("aws_usr"),
+     password=os.getenv("aws_pwd")
+)
+
 #*****************************
-# BCRA principales variables
+#region BCRA principales variables
 print("Obteniendo Principales Variables BCRA")
 bcra_principalesvariables = os.getenv("bcra_principalesvariables")
 url_full = f"{baseurl}{bcra_principalesvariables}"
@@ -124,11 +132,11 @@ table_name = "BCRA_principales_variables"
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
-time.sleep(60)
-
+time.sleep(5)
+#endregion
 
 #*****************************
-# Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor
+#region Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor
 print("Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor")
 datosvariables = os.getenv("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
@@ -144,13 +152,7 @@ url_full = url_full.replace("{fechahasta}", "2024-05-05")
 df = GetData(url_full)
 df = parse_cols(df)
 
-conn = redshift_connector.connect(
-     host=os.getenv("aws_srv"),
-     database=os.getenv("aws_db"),
-     port=os.getenv("aws_port"),
-     user=os.getenv("aws_usr"),
-     password=os.getenv("aws_pwd")
-)
+
 
 table_name = "BCRA_Tipo_Cambio_Minorista"
 
@@ -159,10 +161,11 @@ print("Completado")
 
 conn.close
 print("Delay")
-time.sleep(60)
+time.sleep(5)
+#endregion
 
 #*****************************
-# Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia
+#region Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia
 print("Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia")
 datosvariables = os.getenv("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
@@ -191,10 +194,11 @@ table_name = "BCRA_Tipo_Cambio_Mayorista"
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
-time.sleep(60)
+time.sleep(5)
+#endregion
 
 #*****************************
-# Tasa de Política Monetaria
+#region Tasa de Política Monetaria
 print("Tasa de Política Monetaria")
 datosvariables = os.getenv("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
@@ -223,10 +227,11 @@ table_name = "BCRA_Tasa_Politica_Monetaria"
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
-time.sleep(60)
+time.sleep(5)
+#endregion
 
 #*****************************
-# BADLAR en pesos de bancos privados (en % n.a.)
+#region BADLAR en pesos de bancos privados (en % n.a.)
 print("BADLAR en pesos de bancos privados (en % n.a.)")
 datosvariables = os.getenv("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
@@ -255,4 +260,5 @@ table_name = "BCRA_BADLAR_pesos_bancos_privados"
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
-time.sleep(60)
+time.sleep(5)
+#endregion
