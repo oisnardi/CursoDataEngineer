@@ -1,10 +1,13 @@
-import os, requests, redshift_connector, time
+import datetime
+import requests, redshift_connector, time
 import pandas as pd
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 import numpy as np
+from urllib3.exceptions import InsecureRequestWarning
 
 
-load_dotenv("parameters.env")
+# Cargar las variables desde el archivo .env
+config = dotenv_values("parameters.env")
 
 # Configura los headers con el token de autorización
 headers = {
@@ -15,6 +18,7 @@ headers = {
 def GetData(url):
     # Realiza la solicitud GET a la API con los headers de autorización
     try:
+        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
         response = requests.get(url, headers=headers, verify=False)
         response.raise_for_status()  # Verifica si hay errores en la respuesta
         json = response.json()
@@ -97,21 +101,35 @@ def get_redshift_dtype(dtype):
     else:
         raise ValueError(f"Unsupported Pandas data type: {dtype}")
 
-# Start
-baseurl = os.getenv("bcra_baseurl")
+def get_redshift_connection():
+    config = dotenv_values("parameters.env")
+    conn = redshift_connector.connect(
+        host=config.get("aws_host"),
+        database=config.get("aws_db"),
+        port=int(config.get("aws_port")),
+        user=config.get("aws_usr"),
+        password=config.get("aws_pwd")
+        )
+    return conn
 
-conn = redshift_connector.connect(
-     host=os.getenv("aws_srv"),
-     database=os.getenv("aws_db"),
-     port=os.getenv("aws_port"),
-     user=os.getenv("aws_usr"),
-     password=os.getenv("aws_pwd")
-)
+
+
+# Start
+
+baseurl = config.get("bcra_baseurl")
+print(baseurl)
+
+# Seteamos las fechas a actualizar data
+fechahoy = datetime.date.today()
+fechaayer = fechahoy - datetime.timedelta(days=1)
+fechadesde= fechaayer.strftime("%Y-%m-%d")
+fechahasta = fechahoy.strftime("%Y-%m-%d")
+
 
 #*****************************
 #region BCRA principales variables
 print("Obteniendo Principales Variables BCRA")
-bcra_principalesvariables = os.getenv("bcra_principalesvariables")
+bcra_principalesvariables = config.get("bcra_principalesvariables")
 url_full = f"{baseurl}{bcra_principalesvariables}"
 
 print(url_full)
@@ -119,16 +137,9 @@ print(url_full)
 df = GetData(url_full)
 df = parse_cols(df)
 
-conn = redshift_connector.connect(
-     host=os.getenv("aws_srv"),
-     database=os.getenv("aws_db"),
-     port=os.getenv("aws_port"),
-     user=os.getenv("aws_usr"),
-     password=os.getenv("aws_pwd")
-)
-
 table_name = "BCRA_principales_variables"
 
+conn = get_redshift_connection()
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
@@ -138,24 +149,23 @@ time.sleep(5)
 #*****************************
 #region Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor
 print("Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor")
-datosvariables = os.getenv("bcra_datosvariables")
+datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
 
 print(url_full)
 # Set Variable
 url_full = url_full.replace("{variable}", "4")
 # Set FechaDesde
-url_full = url_full.replace("{fechadesde}", "2001-04-29")
+url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
-url_full = url_full.replace("{fechahasta}", "2024-05-05")
+url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
 df = parse_cols(df)
 
-
-
 table_name = "BCRA_Tipo_Cambio_Minorista"
 
+conn = get_redshift_connection()
 create_table_from_dataframe(conn, df, table_name)
 print("Completado")
 
@@ -167,30 +177,23 @@ time.sleep(5)
 #*****************************
 #region Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia
 print("Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia")
-datosvariables = os.getenv("bcra_datosvariables")
+datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
 
 print(url_full)
 # Set Variable
 url_full = url_full.replace("{variable}", "5")
 # Set FechaDesde
-url_full = url_full.replace("{fechadesde}", "2001-04-29")
+url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
-url_full = url_full.replace("{fechahasta}", "2024-05-05")
+url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
 df = parse_cols(df)
 
-conn = redshift_connector.connect(
-     host=os.getenv("aws_srv"),
-     database=os.getenv("aws_db"),
-     port=os.getenv("aws_port"),
-     user=os.getenv("aws_usr"),
-     password=os.getenv("aws_pwd")
-)
-
 table_name = "BCRA_Tipo_Cambio_Mayorista"
 
+conn = get_redshift_connection()
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
@@ -200,30 +203,23 @@ time.sleep(5)
 #*****************************
 #region Tasa de Política Monetaria
 print("Tasa de Política Monetaria")
-datosvariables = os.getenv("bcra_datosvariables")
+datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
 
 print(url_full)
 # Set Variable
 url_full = url_full.replace("{variable}", "6")
 # Set FechaDesde
-url_full = url_full.replace("{fechadesde}", "2001-04-29")
+url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
-url_full = url_full.replace("{fechahasta}", "2024-05-05")
+url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
 df = parse_cols(df)
 
-conn = redshift_connector.connect(
-     host=os.getenv("aws_srv"),
-     database=os.getenv("aws_db"),
-     port=os.getenv("aws_port"),
-     user=os.getenv("aws_usr"),
-     password=os.getenv("aws_pwd")
-)
-
 table_name = "BCRA_Tasa_Politica_Monetaria"
 
+conn = get_redshift_connection()
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
@@ -233,30 +229,23 @@ time.sleep(5)
 #*****************************
 #region BADLAR en pesos de bancos privados (en % n.a.)
 print("BADLAR en pesos de bancos privados (en % n.a.)")
-datosvariables = os.getenv("bcra_datosvariables")
+datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
 
 print(url_full)
 # Set Variable
 url_full = url_full.replace("{variable}", "7")
 # Set FechaDesde
-url_full = url_full.replace("{fechadesde}", "2001-04-29")
+url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
-url_full = url_full.replace("{fechahasta}", "2024-05-05")
+url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
 df = parse_cols(df)
 
-conn = redshift_connector.connect(
-     host=os.getenv("aws_srv"),
-     database=os.getenv("aws_db"),
-     port=os.getenv("aws_port"),
-     user=os.getenv("aws_usr"),
-     password=os.getenv("aws_pwd")
-)
-
 table_name = "BCRA_BADLAR_pesos_bancos_privados"
 
+conn = get_redshift_connection()
 create_table_from_dataframe(conn, df, table_name)
 
 conn.close
