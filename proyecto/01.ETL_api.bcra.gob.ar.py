@@ -112,12 +112,9 @@ def get_redshift_connection():
         )
     return conn
 
-
-
 # Start
 
 baseurl = config.get("bcra_baseurl")
-print(baseurl)
 
 # Seteamos las fechas a actualizar data
 fechahoy = datetime.date.today()
@@ -125,6 +122,10 @@ fechaayer = fechahoy - datetime.timedelta(days=1)
 fechadesde= fechaayer.strftime("%Y-%m-%d")
 fechahasta = fechahoy.strftime("%Y-%m-%d")
 
+print(f"BaseURL: {baseurl}")
+print(f"fechadesde: {fechadesde}")
+print(f"fechahasta: {fechahasta}")
+print("\n")
 
 #*****************************
 #region BCRA principales variables
@@ -135,15 +136,20 @@ url_full = f"{baseurl}{bcra_principalesvariables}"
 print(url_full)
 
 df = GetData(url_full)
-df = parse_cols(df)
+if df.empty:
+  print("No hay Datos.")
+else:
+    df = parse_cols(df)
 
-table_name = "BCRA_principales_variables"
+    table_name = "BCRA_principales_variables"
 
-conn = get_redshift_connection()
-create_table_from_dataframe(conn, df, table_name)
+    conn = get_redshift_connection()
+    create_table_from_dataframe(conn, df, table_name)
 
-conn.close
+    conn.close
+
 time.sleep(5)
+print("\n")
 #endregion
 
 #*****************************
@@ -161,17 +167,22 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
-df = parse_cols(df)
+if df.empty:
+  print("No hay Datos.")
+else:
+    df = parse_cols(df)
 
-table_name = "BCRA_Tipo_Cambio_Minorista"
+    table_name = "BCRA_Tipo_Cambio_Minorista"
 
-conn = get_redshift_connection()
-create_table_from_dataframe(conn, df, table_name)
-print("Completado")
+    conn = get_redshift_connection()
+    create_table_from_dataframe(conn, df, table_name)
+    print("Completado")
 
-conn.close
+    conn.close
+
 print("Delay")
 time.sleep(5)
+print("\n")
 #endregion
 
 #*****************************
@@ -189,15 +200,20 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
-df = parse_cols(df)
+if df.empty:
+  print("No hay Datos.")
+else:
+    df = parse_cols(df)
 
-table_name = "BCRA_Tipo_Cambio_Mayorista"
+    table_name = "BCRA_Tipo_Cambio_Mayorista"
 
-conn = get_redshift_connection()
-create_table_from_dataframe(conn, df, table_name)
+    conn = get_redshift_connection()
+    create_table_from_dataframe(conn, df, table_name)
 
-conn.close
+    conn.close
+
 time.sleep(5)
+print("\n")
 #endregion
 
 #*****************************
@@ -215,15 +231,20 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
-df = parse_cols(df)
+if df.empty:
+  print("No hay Datos.")
+else:
+    df = parse_cols(df)
 
-table_name = "BCRA_Tasa_Politica_Monetaria"
+    table_name = "BCRA_Tasa_Politica_Monetaria"
 
-conn = get_redshift_connection()
-create_table_from_dataframe(conn, df, table_name)
+    conn = get_redshift_connection()
+    create_table_from_dataframe(conn, df, table_name)
 
-conn.close
+    conn.close
+
 time.sleep(5)
+print("\n")
 #endregion
 
 #*****************************
@@ -241,13 +262,16 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
 df = GetData(url_full)
-df = parse_cols(df)
+if df.empty:
+  print("No hay Datos.")
+else:
+    df = parse_cols(df)
+    table_name = "BCRA_BADLAR_pesos_bancos_privados"
+    conn = get_redshift_connection()
+    create_table_from_dataframe(conn, df, table_name)
 
-table_name = "BCRA_BADLAR_pesos_bancos_privados"
+    conn.close
 
-conn = get_redshift_connection()
-create_table_from_dataframe(conn, df, table_name)
-
-conn.close
 time.sleep(5)
+print("\n")
 #endregion
