@@ -16,21 +16,24 @@ headers = {
     'content-type': 'application/json; charset=utf8'
 }
 
-def GetData(url):
+def log_time(message, start_time):
+    elapsed_time = time.time() - start_time
+    print(f"{message}: {elapsed_time:.2f} segundos")
+
+def get_data(url):
     # Realiza la solicitud GET a la API con los headers de autorización
     try:
         requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
         response = requests.get(url, headers=headers, verify=False)
         response.raise_for_status()  # Verifica si hay errores en la respuesta
-        json = response.json()
+        data_json = response.json()
 
         if response.status_code == 200:
-            return pd.DataFrame.from_dict(json["results"])
+            return pd.DataFrame.from_dict(data_json["results"])
         else:
-            raise Exception(f"Error {json['status']}. {'.'.join(json['errorMessages'])}")
+            raise Exception(f"Error {data_json['status']}. {'.'.join(data_json['errorMessages'])}")
     except requests.exceptions.RequestException as e:
         print(f"Error en la solicitud: {e}")
-        # Maneja el error según sea necesario
         raise SystemExit(e)
 
 def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
@@ -113,8 +116,31 @@ def get_redshift_connection():
         )
     return conn
 
+def process_df(df, table_name, start_time):
+    if df.empty:
+        print("No hay Datos.")
+        return False
+    else:
+        df = parse_cols(df)
+        print(f"Se encontraron {len(df)} registros")
+
+        conn = get_redshift_connection()
+        create_table_from_dataframe(conn, df, table_name)
+
+        conn.close
+
+        log_time(f"Proceso completo para '{table_name}'", start_time)
+
+        return True
+
+def start_delay():
+    print("Delay")
+    time.sleep(5)
+    print("\n")
+
 # Start
 
+#region Set Variables
 baseurl = config.get("bcra_baseurl")
 
 # Seteamos las fechas a actualizar data
@@ -128,36 +154,33 @@ print(f"fechadesde: {fechadesde}")
 print(f"fechahasta: {fechahasta}")
 print("\n")
 
+#endregion
+
 #*****************************
 #region BCRA principales variables
 print("Obteniendo Principales Variables BCRA")
+start_time = time.time()
+
 bcra_principalesvariables = config.get("bcra_principalesvariables")
 url_full = f"{baseurl}{bcra_principalesvariables}"
+table_name = "BCRA_principales_variables"
 
 print(url_full)
 
-df = GetData(url_full)
-if df.empty:
-  print("No hay Datos.")
-else:
-    df = parse_cols(df)
+df = get_data(url_full)
+process_df(df, table_name, start_time)
 
-    table_name = "BCRA_principales_variables"
-
-    conn = get_redshift_connection()
-    create_table_from_dataframe(conn, df, table_name)
-
-    conn.close
-
-time.sleep(5)
-print("\n")
+start_delay()
 #endregion
 
 #*****************************
 #region Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor
 print("Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor")
+start_time = time.time()
+
 datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
+table_name = "BCRA_Tipo_Cambio_Minorista"
 
 print(url_full)
 # Set Variable
@@ -167,30 +190,20 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
-df = GetData(url_full)
-if df.empty:
-  print("No hay Datos.")
-else:
-    df = parse_cols(df)
+df = get_data(url_full)
+process_df(df, table_name, start_time)
 
-    table_name = "BCRA_Tipo_Cambio_Minorista"
-
-    conn = get_redshift_connection()
-    create_table_from_dataframe(conn, df, table_name)
-    print("Completado")
-
-    conn.close
-
-print("Delay")
-time.sleep(5)
-print("\n")
+start_delay()
 #endregion
 
 #*****************************
 #region Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia
 print("Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia")
+start_time = time.time()
+
 datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
+table_name = "BCRA_Tipo_Cambio_Mayorista"
 
 print(url_full)
 # Set Variable
@@ -200,28 +213,20 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
-df = GetData(url_full)
-if df.empty:
-  print("No hay Datos.")
-else:
-    df = parse_cols(df)
+df = get_data(url_full)
+process_df(df, table_name, start_time)
 
-    table_name = "BCRA_Tipo_Cambio_Mayorista"
-
-    conn = get_redshift_connection()
-    create_table_from_dataframe(conn, df, table_name)
-
-    conn.close
-
-time.sleep(5)
-print("\n")
+start_delay()
 #endregion
 
 #*****************************
 #region Tasa de Política Monetaria
 print("Tasa de Política Monetaria")
+start_time = time.time()
+
 datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
+table_name = "BCRA_Tasa_Politica_Monetaria"
 
 print(url_full)
 # Set Variable
@@ -231,28 +236,20 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
-df = GetData(url_full)
-if df.empty:
-  print("No hay Datos.")
-else:
-    df = parse_cols(df)
+df = get_data(url_full)
+process_df(df, table_name, start_time)
 
-    table_name = "BCRA_Tasa_Politica_Monetaria"
-
-    conn = get_redshift_connection()
-    create_table_from_dataframe(conn, df, table_name)
-
-    conn.close
-
-time.sleep(5)
-print("\n")
+start_delay()
 #endregion
 
 #*****************************
 #region BADLAR en pesos de bancos privados (en % n.a.)
 print("BADLAR en pesos de bancos privados (en % n.a.)")
+start_time = time.time()
+
 datosvariables = config.get("bcra_datosvariables")
 url_full = f"{baseurl}{datosvariables}"
+table_name = "BCRA_BADLAR_pesos_bancos_privados"
 
 print(url_full)
 # Set Variable
@@ -262,17 +259,8 @@ url_full = url_full.replace("{fechadesde}", fechadesde)
 # Set FechaHasta
 url_full = url_full.replace("{fechahasta}", fechahasta)
 
-df = GetData(url_full)
-if df.empty:
-  print("No hay Datos.")
-else:
-    df = parse_cols(df)
-    table_name = "BCRA_BADLAR_pesos_bancos_privados"
-    conn = get_redshift_connection()
-    create_table_from_dataframe(conn, df, table_name)
+df = get_data(url_full)
+process_df(df, table_name, start_time)
 
-    conn.close
-
-time.sleep(5)
-print("\n")
+start_delay()
 #endregion
