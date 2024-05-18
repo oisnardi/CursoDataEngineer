@@ -1,10 +1,11 @@
 import datetime
-import requests, redshift_connector, time
+import requests
+import redshift_connector
+import time
 import pandas as pd
 from dotenv import dotenv_values
 import numpy as np
 from urllib3.exceptions import InsecureRequestWarning
-
 
 # Cargar las variables desde el archivo .env
 config = dotenv_values("parameters.env")
