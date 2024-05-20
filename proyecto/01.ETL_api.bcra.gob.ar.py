@@ -38,7 +38,7 @@ def get_data(url):
 
 def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
     if "fecha" in df.columns:
-        df["fecha"] = pd.to_datetime(df["fecha"], format="%d/%m/%Y").dt.strftime("%Y-%m-%d")
+        df["fecha"] = pd.to_datetime(df["fecha"], format=r'%d/%m/%Y')
     if "valor" in df.columns:
         df["valor"] = df["valor"].str.replace(".", "").str.replace(",", ".").astype(float)
     return df
@@ -101,7 +101,9 @@ def get_redshift_dtype(dtype):
     elif dtype == np.object_:
         return "VARCHAR(255)"  # Adjust as needed for longer text
     elif dtype == np.datetime64:
-        return "TIMESTAMP"
+        return "DATE"
+    elif dtype == 'datetime64[ns]':
+        return "DATE"
     else:
         raise ValueError(f"Unsupported Pandas data type: {dtype}")
 
