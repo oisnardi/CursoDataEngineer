@@ -38,9 +38,9 @@ def get_data(url):
 
 def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
     if "fecha" in df.columns:
-        df["fecha"] = pd.to_datetime(df["fecha"], format=r'%d/%m/%Y')
+        df["fecha"] = pd.to_datetime(df["fecha"], format=r'%Y-%m-%d')
     if "valor" in df.columns:
-        df["valor"] = df["valor"].str.replace(".", "").str.replace(",", ".").astype(float)
+        df["valor"] = df["valor"].astype(float)
     return df
 
 def create_table_from_dataframe(conn, dataframe, table_name):
