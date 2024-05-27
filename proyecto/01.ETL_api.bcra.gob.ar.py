@@ -55,7 +55,7 @@ def create_table_from_dataframe(conn, dataframe, table_name):
     ]
     table_schema = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
-            {', '.join(sql_dtypes)}
+            {', '.join(sql_dtypes)}, CreatedDate datetime default sysdate 
         );
     """
 
