@@ -31,10 +31,11 @@ def get_data(url):
         if response.status_code == 200:
             return pd.DataFrame.from_dict(data_json["results"])
         else:
-            raise Exception(f"Error {data_json['status']}. {'.'.join(data_json['errorMessages'])}")
+            print(f"Error en la solicitud: {e}")
+            #raise Exception(f"Error {data_json['status']}. {'.'.join(data_json['errorMessages'])}")
     except requests.exceptions.RequestException as e:
+        print("*** get_data ***")
         print(f"Error en la solicitud: {e}")
-        raise SystemExit(e)
 
 def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
     if "fecha" in df.columns:
@@ -55,9 +56,10 @@ def create_table_from_dataframe(conn, dataframe, table_name):
     ]
     table_schema = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
-            {', '.join(sql_dtypes)}, CreatedDate datetime default sysdate 
+            {', '.join(sql_dtypes)}, CreatedDate DATETIME default sysdate 
         );
     """
+    print(table_schema)
 
     # Create the table using the SQL statement
     try:
@@ -65,6 +67,7 @@ def create_table_from_dataframe(conn, dataframe, table_name):
         cursor.execute(table_schema)
         conn.commit()
     except redshift_connector.error.ProgrammingError as exception:
+        print("*** create_table_from_dataframe ***")
         print(dict(exception.args[0]).get('M'))
 
     # Convert DataFrame to list of tuples
@@ -82,6 +85,7 @@ def create_table_from_dataframe(conn, dataframe, table_name):
         cursor.executemany(insert_sql, values)
         conn.commit()
     except redshift_connector.error.ProgrammingError as exception:
+        print("*** create_table_from_dataframe2 ***")
         print(dict(exception.args[0]).get('M'))
 
     print(f"Tabla '{table_name}' creada y datos cargados correctamente.")
@@ -119,8 +123,11 @@ def get_redshift_connection():
     return conn
 
 def process_df(df, table_name, start_time):
-    if df.empty:
-        print("No hay Datos.")
+    if df is None:
+        print(f"Error tabla {table_name}")
+        return False
+    elif df.empty:
+        print(f"No hay Datos para la tabla {table_name}")
         return False
     else:
         df = parse_cols(df)
@@ -155,7 +162,6 @@ print(f"BaseURL: {baseurl}")
 print(f"fechadesde: {fechadesde}")
 print(f"fechahasta: {fechahasta}")
 print("\n")
-
 #endregion
 
 #*****************************
@@ -175,77 +181,71 @@ process_df(df, table_name, start_time)
 start_delay()
 #endregion
 
+
 #*****************************
-#region Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor
-print("Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor")
-start_time = time.time()
+#region Procesar todas las Variables
+variables = [
+    {'id': '1', 'title': 'Reservas Internacionales del BCRA (en millones de dólares - cifras provisorias sujetas a cambio de valuación)', 'tablename': 'Reservas_Internacionales_BCRA', 'filterbyDate': True},
+    {'id': '4', 'title': 'Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor', 'tablename': 'Tipo_Cambio_Minorista', 'filterbyDate': True},
+    {'id': '5', 'title': 'Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia', 'tablename': 'Tipo_Cambio_Mayorista', 'filterbyDate': True},
+    {'id': '6', 'title': 'Tasa de Política Monetaria (en % n.a.)', 'tablename': 'Tasa_Politica_Monetaria_NA', 'filterbyDate': True},
+    {'id': '7', 'title': 'BADLAR en pesos de bancos privados (en % n.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
+    {'id': '8', 'title': 'TM20 en pesos de bancos privados (en % n.a.)', 'tablename': 'TM20_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
+    {'id': '9', 'title': 'Tasas de interés de las operaciones de pase activas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Activas_BCRA_NA', 'filterbyDate': True},
+    {'id': '10', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_NA', 'filterbyDate': True},
+    {'id': '11', 'title': 'Tasas de interés por préstamos entre entidades financiera privadas (BAIBAR) (en % n.a.)', 'tablename': 'Tasas_Interes_Prestamos_Entidades_Privadas_NA', 'filterbyDate': True},
+    {'id': '12', 'title': 'Tasas de interés por depósitos a 30 días de plazo en entidades financieras (en % n.a.)', 'tablename': 'Tasas_Interes_Depositos_30_Dias_NA', 'filterbyDate': True},
+    {'id': '13', 'title': 'Tasa de interés de préstamos por adelantos en cuenta corriente', 'tablename': 'Tasa_Interes_Adelantos_Cuenta_Corriente', 'filterbyDate': True},
+    {'id': '14', 'title': 'Tasa de interés de préstamos personales', 'tablename': 'Tasa_Interes_Prestamos_Personales', 'filterbyDate': True},
+    {'id': '15', 'title': 'Base monetaria - Total (en millones de pesos)', 'tablename': 'Base_Monetaria_Total', 'filterbyDate': True},
+    {'id': '16', 'title': 'Circulación monetaria (en millones de pesos)', 'tablename': 'Circulacion_Monetaria', 'filterbyDate': True},
+    {'id': '17', 'title': 'Billetes y monedas en poder del público (en millones de pesos)', 'tablename': 'Billetes_Monedas_Publico', 'filterbyDate': True},
+    {'id': '18', 'title': 'Efectivo en entidades financieras (en millones de pesos)', 'tablename': 'Efectivo_Entidades_Financieras', 'filterbyDate': True},
+    {'id': '19', 'title': 'Depósitos de los bancos en cta. cte. en pesos en el BCRA (en millones de pesos)', 'tablename': 'Depositos_Bancos_Cta_Cte_BCRA', 'filterbyDate': True},
+    {'id': '21', 'title': 'Depósitos en efectivo en las entidades financieras - Total (en millones de pesos)', 'tablename': 'Depositos_Efectivo_Entidades_Financieras', 'filterbyDate': True},
+    {'id': '22', 'title': 'En cuentas corrientes (neto de utilización FUCO) (en millones de pesos)', 'tablename': 'Cuentas_Corrientes_Neto_FUCO', 'filterbyDate': True},
+    {'id': '23', 'title': 'En Caja de ahorros (en millones de pesos)', 'tablename': 'Caja_Ahorros', 'filterbyDate': True},
+    {'id': '24', 'title': 'A plazo (incluye inversiones y excluye CEDROS) (en millones de pesos)', 'tablename': 'Depositos_Plazo', 'filterbyDate': True},
+    {'id': '25', 'title': 'M2 privado, promedio móvil de 30 días, variación interanual (en %)', 'tablename': 'M2_Privado_Variacion_Interanual', 'filterbyDate': True},
+    {'id': '26', 'title': 'Préstamos de las entidades financieras al sector privado (en millones de pesos)', 'tablename': 'Prestamos_Entidades_Financieras_Sector_Privado', 'filterbyDate': True},
+    {'id': '27', 'title': 'Inflación mensual (variación en %)', 'tablename': 'Inflacion_Mensual', 'filterbyDate': True},
+    {'id': '28', 'title': 'Inflación interanual (variación en % i.a.)', 'tablename': 'Inflacion_Interanual', 'filterbyDate': True},
+    {'id': '29', 'title': 'Inflación esperada - REM próximos 12 meses - MEDIANA (variación en % i.a)', 'tablename': 'Inflacion_Esperada_REM', 'filterbyDate': True},
+    {'id': '30', 'title': 'CER (Base 2.2.2002=1)', 'tablename': 'CER', 'filterbyDate': True},
+    {'id': '31', 'title': 'Unidad de Valor Adquisitivo (UVA) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Valor_Adquisitivo_UVA', 'filterbyDate': True},
+    {'id': '32', 'title': 'Unidad de Vivienda (UVI) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Vivienda_UVI', 'filterbyDate': True},
+    {'id': '34', 'title': 'Tasa de Política Monetaria (en % e.a.)', 'tablename': 'Tasa_Politica_Monetaria_EA', 'filterbyDate': True},
+    {'id': '35', 'title': 'BADLAR en pesos de bancos privados (en % e.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_EA', 'filterbyDate': True},
+    {'id': '40', 'title': 'Índice para Contratos de Locación (ICL-Ley 27.551, con dos decimales, base 30.6.20=1)', 'tablename': 'Indice_Contratos_Locacion', 'filterbyDate': True},
+    {'id': '41', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_EA', 'filterbyDate': True},
+    {'id': '42', 'title': 'Pases pasivos para el BCRA - Saldos (en millones de pesos)', 'tablename': 'Pases_Pasivos_BCRA_Saldos', 'filterbyDate': True}
+]
 
-datosvariables = config.get("bcra_datosvariables")
-url_full = f"{baseurl}{datosvariables}"
-table_name = "BCRA_Tipo_Cambio_Minorista"
 
-print(url_full)
-# Set Variable
-url_full = url_full.replace("{variable}", "4")
-# Set FechaDesde
-url_full = url_full.replace("{fechadesde}", fechadesde)
-# Set FechaHasta
-url_full = url_full.replace("{fechahasta}", fechahasta)
+for variable in variables:
+    print(variable['title'])
+    start_time = time.time()
+    datosvariables = config.get("bcra_datosvariables")
+    url_full = f"{baseurl}{datosvariables}"
+    table_name = variable['tablename']
 
-df = get_data(url_full)
-process_df(df, table_name, start_time)
+    print(url_full)
+    # Set Variable
+    url_full = url_full.replace("{variable}", variable['id'])
+    # Set FechaDesde
+    url_full = url_full.replace("{fechadesde}", fechadesde)
+    # Set FechaHasta
+    url_full = url_full.replace("{fechahasta}", fechahasta)
 
-start_delay()
+    print(url_full)
+
+    df = get_data(url_full)
+    process_df(df, table_name, start_time)
+
+    start_delay()
+
 #endregion
 
-#*****************************
-#region Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia
-print("Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia")
-start_time = time.time()
-
-datosvariables = config.get("bcra_datosvariables")
-url_full = f"{baseurl}{datosvariables}"
-table_name = "BCRA_Tipo_Cambio_Mayorista"
-
-print(url_full)
-# Set Variable
-url_full = url_full.replace("{variable}", "5")
-# Set FechaDesde
-url_full = url_full.replace("{fechadesde}", fechadesde)
-# Set FechaHasta
-url_full = url_full.replace("{fechahasta}", fechahasta)
-
-df = get_data(url_full)
-process_df(df, table_name, start_time)
-
-start_delay()
-#endregion
-
-#*****************************
-#region Tasa de Política Monetaria
-print("Tasa de Política Monetaria")
-start_time = time.time()
-
-datosvariables = config.get("bcra_datosvariables")
-url_full = f"{baseurl}{datosvariables}"
-table_name = "BCRA_Tasa_Politica_Monetaria"
-
-print(url_full)
-# Set Variable
-url_full = url_full.replace("{variable}", "6")
-# Set FechaDesde
-url_full = url_full.replace("{fechadesde}", fechadesde)
-# Set FechaHasta
-url_full = url_full.replace("{fechahasta}", fechahasta)
-
-df = get_data(url_full)
-process_df(df, table_name, start_time)
-
-start_delay()
-#endregion
-
-#*****************************
-#region BADLAR en pesos de bancos privados (en % n.a.)
 print("BADLAR en pesos de bancos privados (en % n.a.)")
 start_time = time.time()
 
