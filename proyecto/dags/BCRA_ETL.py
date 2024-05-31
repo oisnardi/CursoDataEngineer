@@ -12,14 +12,48 @@ import numpy as np
 from urllib3.exceptions import InsecureRequestWarning
 
 #region Variables
-# Cargar las variables de entorno del archivo parameters.env
-load_dotenv(dotenv_path="./parameters.env")
 
-# las variables de entorno
 # BCRA APÏ v2.0
 bcra_baseurl = "https://api.bcra.gob.ar"
 bcra_principalesvariables = "/estadisticas/v2.0/principalesvariables"
 bcra_datosvariables = "/estadisticas/v2.0/DatosVariable/{variable}/{fechadesde}/{fechahasta}"
+
+variables = [
+        #{'id': '1', 'title': 'Reservas Internacionales del BCRA (en millones de dólares - cifras provisorias sujetas a cambio de valuación)', 'tablename': 'Reservas_Internacionales_BCRA', 'filterbyDate': True},
+        {'id': '4', 'title': 'Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor', 'tablename': 'Tipo_Cambio_Minorista', 'filterbyDate': True},
+        {'id': '5', 'title': 'Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia', 'tablename': 'Tipo_Cambio_Mayorista', 'filterbyDate': True},
+        {'id': '6', 'title': 'Tasa de Política Monetaria (en % n.a.)', 'tablename': 'Tasa_Politica_Monetaria_NA', 'filterbyDate': True},
+        {'id': '7', 'title': 'BADLAR en pesos de bancos privados (en % n.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
+        #{'id': '8', 'title': 'TM20 en pesos de bancos privados (en % n.a.)', 'tablename': 'TM20_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
+        {'id': '9', 'title': 'Tasas de interés de las operaciones de pase activas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Activas_BCRA_NA', 'filterbyDate': True},
+        {'id': '10', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_NA', 'filterbyDate': True},
+        {'id': '11', 'title': 'Tasas de interés por préstamos entre entidades financiera privadas (BAIBAR) (en % n.a.)', 'tablename': 'Tasas_Interes_Prestamos_Entidades_Privadas_NA', 'filterbyDate': True},
+        {'id': '12', 'title': 'Tasas de interés por depósitos a 30 días de plazo en entidades financieras (en % n.a.)', 'tablename': 'Tasas_Interes_Depositos_30_Dias_NA', 'filterbyDate': True},
+        {'id': '13', 'title': 'Tasa de interés de préstamos por adelantos en cuenta corriente', 'tablename': 'Tasa_Interes_Adelantos_Cuenta_Corriente', 'filterbyDate': True},
+        {'id': '14', 'title': 'Tasa de interés de préstamos personales', 'tablename': 'Tasa_Interes_Prestamos_Personales', 'filterbyDate': True},
+        #{'id': '15', 'title': 'Base monetaria - Total (en millones de pesos)', 'tablename': 'Base_Monetaria_Total', 'filterbyDate': True},
+        #{'id': '16', 'title': 'Circulación monetaria (en millones de pesos)', 'tablename': 'Circulacion_Monetaria', 'filterbyDate': True},
+        #{'id': '17', 'title': 'Billetes y monedas en poder del público (en millones de pesos)', 'tablename': 'Billetes_Monedas_Publico', 'filterbyDate': True},
+        #{'id': '18', 'title': 'Efectivo en entidades financieras (en millones de pesos)', 'tablename': 'Efectivo_Entidades_Financieras', 'filterbyDate': True},
+        #{'id': '19', 'title': 'Depósitos de los bancos en cta. cte. en pesos en el BCRA (en millones de pesos)', 'tablename': 'Depositos_Bancos_Cta_Cte_BCRA', 'filterbyDate': True},
+        #{'id': '21', 'title': 'Depósitos en efectivo en las entidades financieras - Total (en millones de pesos)', 'tablename': 'Depositos_Efectivo_Entidades_Financieras', 'filterbyDate': True},
+        #{'id': '22', 'title': 'En cuentas corrientes (neto de utilización FUCO) (en millones de pesos)', 'tablename': 'Cuentas_Corrientes_Neto_FUCO', 'filterbyDate': True},
+        #{'id': '23', 'title': 'En Caja de ahorros (en millones de pesos)', 'tablename': 'Caja_Ahorros', 'filterbyDate': True},
+        #{'id': '24', 'title': 'A plazo (incluye inversiones y excluye CEDROS) (en millones de pesos)', 'tablename': 'Depositos_Plazo', 'filterbyDate': True},
+        #{'id': '25', 'title': 'M2 privado, promedio móvil de 30 días, variación interanual (en %)', 'tablename': 'M2_Privado_Variacion_Interanual', 'filterbyDate': True},
+        #{'id': '26', 'title': 'Préstamos de las entidades financieras al sector privado (en millones de pesos)', 'tablename': 'Prestamos_Entidades_Financieras_Sector_Privado', 'filterbyDate': True},
+        #{'id': '27', 'title': 'Inflación mensual (variación en %)', 'tablename': 'Inflacion_Mensual', 'filterbyDate': True},
+        #{'id': '28', 'title': 'Inflación interanual (variación en % i.a.)', 'tablename': 'Inflacion_Interanual', 'filterbyDate': True},
+        #{'id': '29', 'title': 'Inflación esperada - REM próximos 12 meses - MEDIANA (variación en % i.a)', 'tablename': 'Inflacion_Esperada_REM', 'filterbyDate': True},
+        {'id': '30', 'title': 'CER (Base 2.2.2002=1)', 'tablename': 'CER', 'filterbyDate': True},
+        {'id': '31', 'title': 'Unidad de Valor Adquisitivo (UVA) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Valor_Adquisitivo_UVA', 'filterbyDate': True},
+        {'id': '32', 'title': 'Unidad de Vivienda (UVI) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Vivienda_UVI', 'filterbyDate': True},
+        {'id': '34', 'title': 'Tasa de Política Monetaria (en % e.a.)', 'tablename': 'Tasa_Politica_Monetaria_EA', 'filterbyDate': True},
+        {'id': '35', 'title': 'BADLAR en pesos de bancos privados (en % e.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_EA', 'filterbyDate': True},
+        {'id': '40', 'title': 'Índice para Contratos de Locación (ICL-Ley 27.551, con dos decimales, base 30.6.20=1)', 'tablename': 'Indice_Contratos_Locacion', 'filterbyDate': True},
+        {'id': '41', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_EA', 'filterbyDate': True}
+        #{'id': '42', 'title': 'Pases pasivos para el BCRA - Saldos (en millones de pesos)', 'tablename': 'Pases_Pasivos_BCRA_Saldos', 'filterbyDate': True}
+    ]
 
 print(bcra_baseurl)
 print(bcra_principalesvariables)
@@ -207,7 +241,7 @@ def start_delay():
     time.sleep(5)
     print("\n")
 
-def Task1(exec_date):
+def PrincipalesVariablesBCRA(exec_date):
     print(f"Adquiriendo data para la fecha: {exec_date}")
     #*****************************
     #region BCRA principales variables
@@ -225,48 +259,11 @@ def Task1(exec_date):
     start_delay()
     #endregion
 
-def Task2(exec_date):
+def CargaDatosVariables(exec_date):
     print(f"Adquiriendo data para la fecha: {exec_date}")
     #*****************************
     #region Procesar todas las Variables
-    variables = [
-        {'id': '1', 'title': 'Reservas Internacionales del BCRA (en millones de dólares - cifras provisorias sujetas a cambio de valuación)', 'tablename': 'Reservas_Internacionales_BCRA', 'filterbyDate': True},
-        {'id': '4', 'title': 'Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor', 'tablename': 'Tipo_Cambio_Minorista', 'filterbyDate': True},
-        {'id': '5', 'title': 'Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia', 'tablename': 'Tipo_Cambio_Mayorista', 'filterbyDate': True},
-        {'id': '6', 'title': 'Tasa de Política Monetaria (en % n.a.)', 'tablename': 'Tasa_Politica_Monetaria_NA', 'filterbyDate': True},
-        {'id': '7', 'title': 'BADLAR en pesos de bancos privados (en % n.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
-        {'id': '8', 'title': 'TM20 en pesos de bancos privados (en % n.a.)', 'tablename': 'TM20_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
-        {'id': '9', 'title': 'Tasas de interés de las operaciones de pase activas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Activas_BCRA_NA', 'filterbyDate': True},
-        {'id': '10', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_NA', 'filterbyDate': True},
-        {'id': '11', 'title': 'Tasas de interés por préstamos entre entidades financiera privadas (BAIBAR) (en % n.a.)', 'tablename': 'Tasas_Interes_Prestamos_Entidades_Privadas_NA', 'filterbyDate': True},
-        {'id': '12', 'title': 'Tasas de interés por depósitos a 30 días de plazo en entidades financieras (en % n.a.)', 'tablename': 'Tasas_Interes_Depositos_30_Dias_NA', 'filterbyDate': True},
-        {'id': '13', 'title': 'Tasa de interés de préstamos por adelantos en cuenta corriente', 'tablename': 'Tasa_Interes_Adelantos_Cuenta_Corriente', 'filterbyDate': True},
-        {'id': '14', 'title': 'Tasa de interés de préstamos personales', 'tablename': 'Tasa_Interes_Prestamos_Personales', 'filterbyDate': True},
-        {'id': '15', 'title': 'Base monetaria - Total (en millones de pesos)', 'tablename': 'Base_Monetaria_Total', 'filterbyDate': True},
-        {'id': '16', 'title': 'Circulación monetaria (en millones de pesos)', 'tablename': 'Circulacion_Monetaria', 'filterbyDate': True},
-        {'id': '17', 'title': 'Billetes y monedas en poder del público (en millones de pesos)', 'tablename': 'Billetes_Monedas_Publico', 'filterbyDate': True},
-        {'id': '18', 'title': 'Efectivo en entidades financieras (en millones de pesos)', 'tablename': 'Efectivo_Entidades_Financieras', 'filterbyDate': True},
-        {'id': '19', 'title': 'Depósitos de los bancos en cta. cte. en pesos en el BCRA (en millones de pesos)', 'tablename': 'Depositos_Bancos_Cta_Cte_BCRA', 'filterbyDate': True},
-        {'id': '21', 'title': 'Depósitos en efectivo en las entidades financieras - Total (en millones de pesos)', 'tablename': 'Depositos_Efectivo_Entidades_Financieras', 'filterbyDate': True},
-        {'id': '22', 'title': 'En cuentas corrientes (neto de utilización FUCO) (en millones de pesos)', 'tablename': 'Cuentas_Corrientes_Neto_FUCO', 'filterbyDate': True},
-        {'id': '23', 'title': 'En Caja de ahorros (en millones de pesos)', 'tablename': 'Caja_Ahorros', 'filterbyDate': True},
-        {'id': '24', 'title': 'A plazo (incluye inversiones y excluye CEDROS) (en millones de pesos)', 'tablename': 'Depositos_Plazo', 'filterbyDate': True},
-        {'id': '25', 'title': 'M2 privado, promedio móvil de 30 días, variación interanual (en %)', 'tablename': 'M2_Privado_Variacion_Interanual', 'filterbyDate': True},
-        {'id': '26', 'title': 'Préstamos de las entidades financieras al sector privado (en millones de pesos)', 'tablename': 'Prestamos_Entidades_Financieras_Sector_Privado', 'filterbyDate': True},
-        {'id': '27', 'title': 'Inflación mensual (variación en %)', 'tablename': 'Inflacion_Mensual', 'filterbyDate': True},
-        {'id': '28', 'title': 'Inflación interanual (variación en % i.a.)', 'tablename': 'Inflacion_Interanual', 'filterbyDate': True},
-        {'id': '29', 'title': 'Inflación esperada - REM próximos 12 meses - MEDIANA (variación en % i.a)', 'tablename': 'Inflacion_Esperada_REM', 'filterbyDate': True},
-        {'id': '30', 'title': 'CER (Base 2.2.2002=1)', 'tablename': 'CER', 'filterbyDate': True},
-        {'id': '31', 'title': 'Unidad de Valor Adquisitivo (UVA) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Valor_Adquisitivo_UVA', 'filterbyDate': True},
-        {'id': '32', 'title': 'Unidad de Vivienda (UVI) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Vivienda_UVI', 'filterbyDate': True},
-        {'id': '34', 'title': 'Tasa de Política Monetaria (en % e.a.)', 'tablename': 'Tasa_Politica_Monetaria_EA', 'filterbyDate': True},
-        {'id': '35', 'title': 'BADLAR en pesos de bancos privados (en % e.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_EA', 'filterbyDate': True},
-        {'id': '40', 'title': 'Índice para Contratos de Locación (ICL-Ley 27.551, con dos decimales, base 30.6.20=1)', 'tablename': 'Indice_Contratos_Locacion', 'filterbyDate': True},
-        {'id': '41', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_EA', 'filterbyDate': True},
-        {'id': '42', 'title': 'Pases pasivos para el BCRA - Saldos (en millones de pesos)', 'tablename': 'Pases_Pasivos_BCRA_Saldos', 'filterbyDate': True}
-    ]
-
-
+    
     for variable in variables:
         print(variable['title'])
         start_time = time.time()
@@ -294,25 +291,19 @@ def Task2(exec_date):
 # Tareas
 ##1. Extraccion
 task_1 = PythonOperator(
-    task_id='Task1',
-    python_callable=Task1,
+    task_id='Principales_Variables_BCRA',
+    python_callable=PrincipalesVariablesBCRA,
     op_args=["{{ ds }} {{ execution_date.hour }}"],
     dag=BC_dag,
 )
 
 #2. Transformacion
 task_2 = PythonOperator(
-    task_id='Task2',
-    python_callable=Task2,
+    task_id='Carga_Datos_Variables',
+    python_callable=CargaDatosVariables,
     op_args=["{{ ds }} {{ execution_date.hour }}"],
     dag=BC_dag,
 )
 
-
 # Definicion orden de tareas
 task_1 >> task_2
-
-
-
-
-

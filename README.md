@@ -2,7 +2,7 @@
 
 # BCRA Data Extraction and Loading Script
 
-Este script extrae datos de la API del Banco Central de la República Argentina (BCRA) y los carga en una base de datos Amazon Redshift. Los datos extraídos incluyen principales variables, tipo de cambio minorista y mayorista, tasa de política monetaria y BADLAR en pesos de bancos privados.
+ETL Docker, Airflow + Dag script extrae datos de la API del Banco Central de la República Argentina (BCRA) y los carga en una base de datos Amazon Redshift. Los datos extraídos incluyen principales variables, tipo de cambio minorista y mayorista, tasa de política monetaria y BADLAR en pesos de bancos privados.
 
 ## Requisitos
 
@@ -28,6 +28,12 @@ docker-compose up airflow-init
 docker-compose up
 ```
 
+## Login Airflow
+http://localhost:8080
+```
+Usr: airflow
+Pwd: airflow
+```
 
 ## Flujo del Script
 
