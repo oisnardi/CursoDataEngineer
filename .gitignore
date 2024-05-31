@@ -1,3 +1,4 @@
 # Parameters fils
 **/*.env
-
+proyecto/dags/__pycache__
+proyecto/logs/

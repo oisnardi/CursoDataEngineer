@@ -21,6 +21,14 @@ Puedes instalar los paquetes requeridos utilizando pip:
 pip install requests redshift_connector pandas python-dotenv numpy urllib3
 ```
 
+## Docker
+Commandos
+```
+docker-compose up airflow-init
+docker-compose up
+```
+
+
 ## Flujo del Script
 
 - 1- Carga las variables de configuración desde el archivo .env.
