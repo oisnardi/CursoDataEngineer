@@ -105,7 +105,9 @@ default_args = {
 BC_dag = DAG(
     dag_id='BCRA_ETL',
     default_args=default_args,
-    description='Agrega data de BCRA de forma diaria',
+    description='Extre data del BCRA de forma diaria y carga en Amazon RedShift',
+    start_date=datetime(2024,5,1),
+    tags=['BCRA','AlejandroI'],
     schedule_interval="@daily",
     catchup=False
 )
