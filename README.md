@@ -24,8 +24,9 @@ pip install requests redshift_connector pandas python-dotenv numpy urllib3
 ## Docker
 Commandos
 ```
-docker-compose up airflow-init
-docker-compose up
+docker stop $(docker ps -q)
+docker build -t my-airflow-image .
+docker run -d -p 8080:8080 my-airflow-image
 ```
 
 ## Login Airflow

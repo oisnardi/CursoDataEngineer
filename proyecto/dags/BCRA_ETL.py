@@ -136,6 +136,7 @@ def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
         df["fecha"] = pd.to_datetime(df["fecha"], format=r'%Y-%m-%d')
     if "valor" in df.columns:
         df["valor"] = df["valor"].astype(float)
+            
     return df
 
 def create_table_from_dataframe(conn, dataframe, table_name):
@@ -143,14 +144,22 @@ def create_table_from_dataframe(conn, dataframe, table_name):
     cols = list(dtypes.index)
     tipos = list(dtypes.values)
 
-    # Create the SQL DDL statement for the table schema
-    sql_dtypes = [
+    # Crear la parte de la declaración SQL para definir las columnas y la clave primaria
+    sql_columns = [
         f"{col_name} {get_redshift_dtype(dtype)}"
         for col_name, dtype in zip(cols, tipos)
     ]
+
+    primary_key = "idVariable, fecha"  # Usar las columnas como clave primaria
+
+    # Agregar la columna CreatedDate al esquema de la tabla
+    sql_columns.append("CreatedDate DATETIME default sysdate")
+
+    # Combinar las columnas en la declaración SQL
     table_schema = f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
-            {', '.join(sql_dtypes)}, CreatedDate DATETIME default sysdate 
+            {', '.join(sql_columns)},
+            PRIMARY KEY ({primary_key})
         );
     """
     print(table_schema)
@@ -164,6 +173,28 @@ def create_table_from_dataframe(conn, dataframe, table_name):
         print("*** create_table_from_dataframe ***")
         print(dict(exception.args[0]).get('M'))
 
+
+
+    # Convert DataFrame to list of tuples
+    fechas = dataframe["fecha"].dt.strftime('%Y-%m-%d').tolist()
+    fechas_unicas = list(set(fechas))
+    fechas_con_comillas = ["'{}'".format(fecha) for fecha in fechas_unicas]
+
+    lstdvariables = dataframe["idVariable"].astype(str).tolist()
+    lstdvariables_unicas  = list(set(lstdvariables))
+
+    print(fechas_con_comillas)
+    # Delete existing data in the table
+    try:
+        delete_sql = f"DELETE {table_name} WHERE fecha in ({', '.join(fechas_con_comillas)}) AND idVariable in ({', '.join(lstdvariables_unicas)})"
+        print(delete_sql)
+
+        cursor.execute(delete_sql)
+        conn.commit()
+    except redshift_connector.error.ProgrammingError as exception:
+        print("*** create_table_from_dataframe2 ***")
+        print(dict(exception.args[0]).get('M'))
+
     # Convert DataFrame to list of tuples
     values = dataframe.to_numpy().tolist()
 
@@ -173,13 +204,14 @@ def create_table_from_dataframe(conn, dataframe, table_name):
         values_format = "%s"
         for x in range(len(cols)-1):
             values_format = values_format + ", %s"
-
-        insert_sql = f"INSERT INTO {table_name} ({', '.join(cols)}) VALUES ({values_format})"
         
+        insert_sql = f"INSERT INTO {table_name} ({', '.join(cols)}) VALUES ({values_format})"
+        print(insert_sql)
+
         cursor.executemany(insert_sql, values)
         conn.commit()
     except redshift_connector.error.ProgrammingError as exception:
-        print("*** create_table_from_dataframe2 ***")
+        print("*** create_table_from_dataframe3 ***")
         print(dict(exception.args[0]).get('M'))
 
     print(f"Tabla '{table_name}' creada y datos cargados correctamente.")
