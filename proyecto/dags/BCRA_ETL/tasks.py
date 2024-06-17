@@ -1,24 +1,20 @@
 # Autor: Alejandro Isnardi
 # Fecha: 17/06/2024
-# 
+# BRCR Helper
 
 from datetime import date, timedelta, datetime
 import os
 import time
-from airflow import DAG
-from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.python_operator import PythonOperator
+
 import requests
 import redshift_connector
 import pandas as pd
-from dotenv import dotenv_values, load_dotenv
 import numpy as np
 from urllib3.exceptions import InsecureRequestWarning
 from io import StringIO
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
 
 #region Variables
 
@@ -109,30 +105,12 @@ from_email = "alejandro@yopmail.com"
 smtp_server = "smtp-relay.brevo.com"
 smtp_port = 587
 
-with open(dag_path+'/keys/'+"email_logint.txt",'r') as f:
+with open(dag_path+'/keys/'+"email_login.txt",'r') as f:
     login= f.read()
 with open(dag_path+'/keys/'+"email_pwd.txt",'r') as f:
     password= f.read()
 
 #endregion
-
-# Argumentos por defecto para el DAG
-default_args = {
-    'owner': 'Alejandro I.',
-    'start_date': datetime(2024,5,29),
-    'retries':5,
-    'retry_delay': timedelta(minutes=5)
-}
-
-BC_dag = DAG(
-    dag_id='BCRA_ETL',
-    default_args=default_args,
-    description='Extre data del BCRA de forma diaria y carga en Amazon RedShift',
-    start_date=datetime(2024,6,17),
-    tags=['BCRA','AlejandroI'],
-    schedule_interval="@daily",
-    catchup=False
-)
 
 def log_time(message, start_time):
     elapsed_time = time.time() - start_time
@@ -428,53 +406,13 @@ def EnviarCorreo(msg):
 def CargaTipoCambioMinorista(exec_date):
     variable = get_variable_by_id(variables, '4')
     if (variable):
-        CargarVariable(exec_date, variable, None)
+        CargarVariable(exec_date, variable)
     else:
         print("Error variable inexistente")
         
 def CargaTipoCambioMayorista (exec_date):
     variable = get_variable_by_id(variables, '5')
     if (variable):
-        CargarVariable(exec_date, variable, None)
+        CargarVariable(exec_date, variable)
     else:
         print("Error variable inexistente")
-
-# Tareas
-##1. Extraccion
-task_1 = PythonOperator(
-    task_id='Principales_Variables_BCRA',
-    python_callable=PrincipalesVariablesBCRA,
-    op_args=["{{ ds }} {{ execution_date.hour }}"],
-    dag=BC_dag,
-    provide_context=True
-)
-
-#2. Extraccion
-task_2 = PythonOperator(
-    task_id='Carga_Tipo_Cambio_Minorista',
-    python_callable=CargaTipoCambioMinorista,
-    op_args=["{{ ds }} {{ execution_date.hour }}"],
-    dag=BC_dag,
-    provide_context=True
-)
-
-#3. Process
-task_3 = PythonOperator(
-    task_id='Validar_Datos',
-    python_callable=ValidarVariables,
-    op_args=["{{ ds }} {{ execution_date.hour }}"],
-    dag=BC_dag,
-    provide_context=True
-)
-
-#3. Process
-task_4 = PythonOperator(
-    task_id='Carga_Tipo_Cambio_Mayorista',
-    python_callable=CargaTipoCambioMayorista,
-    op_args=["{{ ds }} {{ execution_date.hour }}"],
-    dag=BC_dag,
-    provide_context=True
-)
-
-# Definicion orden de tareas
-task_1 >> task_3 >> task_2

@@ -30,6 +30,8 @@ COPY ./dags /app/airflow/dags
 COPY ./keys/db.txt /app/keys/db.txt
 COPY ./keys/user.txt /app/keys/user.txt
 COPY ./keys/pwd.txt /app/keys/pwd.txt
+COPY ./keys/pwd.txt /app/keys/email_login.txt
+COPY ./keys/pwd.txt /app/keys/email_pwd.txt
 
 # Imprime el contenido del directorio de destino después de la copia
 RUN ls -la /app/keys
