@@ -1,3 +1,7 @@
+# Autor: Alejandro Isnardi
+# Fecha: 17/06/2024
+# 
+
 from datetime import date, timedelta, datetime
 import os
 import time
@@ -11,6 +15,9 @@ from dotenv import dotenv_values, load_dotenv
 import numpy as np
 from urllib3.exceptions import InsecureRequestWarning
 from io import StringIO
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 
 #region Variables
@@ -53,8 +60,8 @@ variables = [
         {'id': '34', 'title': 'Tasa de Política Monetaria (en % e.a.)', 'tablename': 'Tasa_Politica_Monetaria_EA', 'filterbyDate': True},
         {'id': '35', 'title': 'BADLAR en pesos de bancos privados (en % e.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_EA', 'filterbyDate': True},
         {'id': '40', 'title': 'Índice para Contratos de Locación (ICL-Ley 27.551, con dos decimales, base 30.6.20=1)', 'tablename': 'Indice_Contratos_Locacion', 'filterbyDate': True},
-        {'id': '41', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_EA', 'filterbyDate': True}
-        #{'id': '42', 'title': 'Pases pasivos para el BCRA - Saldos (en millones de pesos)', 'tablename': 'Pases_Pasivos_BCRA_Saldos', 'filterbyDate': True}
+        {'id': '41', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_EA', 'filterbyDate': True},
+        {'id': '42', 'title': 'Pases pasivos para el BCRA - Saldos (en millones de pesos)', 'tablename': 'Pases_Pasivos_BCRA_Saldos', 'filterbyDate': True}
     ]
 
 max_dolar_mayorista = 920.10
@@ -72,20 +79,17 @@ headers = {
     'content-type': 'application/json; charset=utf8'
 }
 
-aws_host = "data-engineer-cluster.cyhh5bfevlmn.us-east-1.redshift.amazonaws.com"
-
 dag_path = os.getcwd() 
 
+# AWS RedShift Settings
+aws_host = "data-engineer-cluster.cyhh5bfevlmn.us-east-1.redshift.amazonaws.com"
+aws_port = 5439
 with open(dag_path+'/keys/'+"db.txt",'r') as f:
     aws_db= f.read()
 with open(dag_path+'/keys/'+"user.txt",'r') as f:
     aws_usr= f.read()
 with open(dag_path+'/keys/'+"pwd.txt",'r') as f:
     aws_pwd= f.read()
-
-aws_port = 5439
-
-print(f"aws_host: {aws_host}")
 
 # Seteamos las fechas a actualizar data
 fechahoy = date.today()
@@ -97,9 +101,22 @@ print(f"BaseURL: {bcra_baseurl}")
 print(f"fechadesde: {fechadesde}")
 print(f"fechahasta: {fechahasta}")
 print("\n")
+
+#Email Settings
+subject = "Notificación Airflow"
+to_email = "aleoi84@hotmail.com"
+from_email = "alejandro@yopmail.com"
+smtp_server = "smtp-relay.brevo.com"
+smtp_port = 587
+
+with open(dag_path+'/keys/'+"email_logint.txt",'r') as f:
+    login= f.read()
+with open(dag_path+'/keys/'+"email_pwd.txt",'r') as f:
+    password= f.read()
+
 #endregion
 
-# argumentos por defecto para el DAG
+# Argumentos por defecto para el DAG
 default_args = {
     'owner': 'Alejandro I.',
     'start_date': datetime(2024,5,29),
@@ -111,7 +128,7 @@ BC_dag = DAG(
     dag_id='BCRA_ETL',
     default_args=default_args,
     description='Extre data del BCRA de forma diaria y carga en Amazon RedShift',
-    start_date=datetime(2024,5,1),
+    start_date=datetime(2024,6,17),
     tags=['BCRA','AlejandroI'],
     schedule_interval="@daily",
     catchup=False
@@ -224,13 +241,6 @@ def create_table_from_dataframe(conn, dataframe, table_name):
     print(f"Tabla '{table_name}' creada y datos cargados correctamente.")
 
 def get_redshift_dtype(dtype):
-    """
-    Maps Pandas data types to their corresponding Redshift data types.
-    Args:
-        dtype (pandas.Dtype): The Pandas data type.
-    Returns:
-        str: The Redshift data type equivalent.
-    """
     if dtype == np.int64:
         return "INT"
     elif dtype == np.float64:
@@ -276,15 +286,24 @@ def process_df(df, table_name, start_time):
         return True
 
 def start_delay():
-    print("Delay")
-    time.sleep(5)
+    #print("Delay")
+    for _ in range(4):
+        print("Please wait...", flush=True)
+        time.sleep(1)    
     print("\n")
 
+def get_variable_by_id(variables, id):
+    return next((item for item in variables if item['id'] == id), None)
+
+def GetNowTime():
+    now = datetime.now()
+    current_time = now.strftime("%H:%M")
+    return current_time
+    
 def PrincipalesVariablesBCRA(exec_date, **kwargs):
-    print(f"Adquiriendo data para la fecha: {exec_date}")
+    print(f"Adquiriendo Principales Variables BCRA para la fecha: {exec_date}")
     #*****************************
     #region BCRA principales variables
-    print("Obteniendo Principales Variables BCRA")
     start_time = time.time()
 
     url_full = f"{bcra_baseurl}{bcra_principalesvariables}"
@@ -302,7 +321,7 @@ def PrincipalesVariablesBCRA(exec_date, **kwargs):
     #endregion
 
 def CargaDatosVariables(exec_date, **kwargs):
-    print(f"Adquiriendo data para la fecha: {exec_date}")
+    print(f"Carga Datos Variables para la fecha: {exec_date}")
     #*****************************
     #region Procesar todas las Variables
     
@@ -326,6 +345,31 @@ def CargaDatosVariables(exec_date, **kwargs):
         process_df(df, table_name, start_time)
 
         start_delay()
+
+    #endregion
+
+def CargarVariable (exec_date, variable, **kwargs):
+    start_time = time.time()
+    print(f"Inicio carga {variable['title']} para la fecha: {exec_date}")
+    #*****************************
+
+    url_full = f"{bcra_baseurl}{bcra_datosvariables}"
+    table_name = variable['tablename']
+
+    print(url_full)
+    # Set Variable
+    url_full = url_full.replace("{variable}", variable['id'])
+    # Set FechaDesde
+    url_full = url_full.replace("{fechadesde}", fechadesde)
+    # Set FechaHasta
+    url_full = url_full.replace("{fechahasta}", fechahasta)
+
+    print(url_full)
+
+    df = get_data(url_full)
+    process_df(df, table_name, start_time)
+
+    start_delay()
 
     #endregion
 
@@ -355,12 +399,45 @@ def ValidarVariables(exec_date, **kwargs):
         print("Dolar calmo")
     
 def EnviarCorreo(msg):
-    now = datetime.now()
-    current_time = now.strftime("%H:%M")
+    current_time = GetNowTime()
     print(f"Enviando correo para la fecha: {current_time}")
-    
-    print(msg)
-    
+    try:
+        body=msg
+        # Crear mensaje
+        msg = MIMEMultipart()
+        msg['From'] = from_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        # Agregar cuerpo del correo
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Configurar la conexión al servidor SMTP
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(login, password)
+
+        # Enviar correo
+        server.sendmail(from_email, to_email, msg.as_string())
+        server.quit()
+
+        print(f'Correo enviado exitosamente a {to_email}')
+    except Exception as e:
+        print(f'Error al enviar el correo: {e}')
+
+def CargaTipoCambioMinorista(exec_date):
+    variable = get_variable_by_id(variables, '4')
+    if (variable):
+        CargarVariable(exec_date, variable, None)
+    else:
+        print("Error variable inexistente")
+        
+def CargaTipoCambioMayorista (exec_date):
+    variable = get_variable_by_id(variables, '5')
+    if (variable):
+        CargarVariable(exec_date, variable, None)
+    else:
+        print("Error variable inexistente")
 
 # Tareas
 ##1. Extraccion
@@ -374,17 +451,26 @@ task_1 = PythonOperator(
 
 #2. Extraccion
 task_2 = PythonOperator(
-    task_id='Carga_Datos_Variables',
-    python_callable=CargaDatosVariables,
+    task_id='Carga_Tipo_Cambio_Minorista',
+    python_callable=CargaTipoCambioMinorista,
     op_args=["{{ ds }} {{ execution_date.hour }}"],
     dag=BC_dag,
     provide_context=True
 )
 
-#2. Extraccion
+#3. Process
 task_3 = PythonOperator(
     task_id='Validar_Datos',
     python_callable=ValidarVariables,
+    op_args=["{{ ds }} {{ execution_date.hour }}"],
+    dag=BC_dag,
+    provide_context=True
+)
+
+#3. Process
+task_4 = PythonOperator(
+    task_id='Carga_Tipo_Cambio_Mayorista',
+    python_callable=CargaTipoCambioMayorista,
     op_args=["{{ ds }} {{ execution_date.hour }}"],
     dag=BC_dag,
     provide_context=True
