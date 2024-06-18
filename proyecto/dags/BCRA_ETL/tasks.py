@@ -16,6 +16,8 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from BCRA_ETL.fechas import validar_dia_no_laborable, validar_feriado
+
 #region Variables
 
 # BCRA APÏ v2.0
@@ -331,6 +333,10 @@ def CargarVariable (exec_date, variable, **kwargs):
     print(f"Inicio carga {variable['title']} para la fecha: {exec_date}")
     #*****************************
 
+    if(validar_dia_no_laborable(fechadesde) or validar_feriado(fechadesde)):
+        print(f"No se carga {fechadesde} es día no laborable o feriado")
+        return
+              
     url_full = f"{bcra_baseurl}{bcra_datosvariables}"
     table_name = variable['tablename']
 
@@ -340,7 +346,7 @@ def CargarVariable (exec_date, variable, **kwargs):
     # Set FechaDesde
     url_full = url_full.replace("{fechadesde}", fechadesde)
     # Set FechaHasta
-    url_full = url_full.replace("{fechahasta}", fechahasta)
+    url_full = url_full.replace("{fechahasta}", fechadesde)
 
     print(url_full)
 

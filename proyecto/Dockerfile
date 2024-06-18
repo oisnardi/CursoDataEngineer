@@ -26,12 +26,16 @@ RUN pip install --no-cache-dir apache-airflow \
     && pip install --no-cache-dir python-dotenv redshift_connector pandas
 
 # Copia el archivo de DAG a la carpeta de Airflow
+# dags
 COPY ./dags /app/airflow/dags
+# keys
 COPY ./keys/db.txt /app/keys/db.txt
 COPY ./keys/user.txt /app/keys/user.txt
 COPY ./keys/pwd.txt /app/keys/pwd.txt
 COPY ./keys/pwd.txt /app/keys/email_login.txt
 COPY ./keys/pwd.txt /app/keys/email_pwd.txt
+# raw_data
+COPY ./raw_data/feriados.json /app/raw_data/feriados.json
 
 # Imprime el contenido del directorio de destino después de la copia
 RUN ls -la /app/keys

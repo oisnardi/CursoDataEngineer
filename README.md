@@ -8,12 +8,12 @@ ETL Docker, Airflow + Dag script extrae datos de la API del Banco Central de la 
 
 - Python 3.x
 - Paquetes:
-  - `requests`
-  - `redshift_connector`
-  - `pandas`
-  - `dotenv`
-  - `numpy`
-  - `urllib3`
+  - apache-airflow==2.9.2
+  - numpy==2.0.0
+  - pandas==1.4.2
+  - redshift_connector==2.1.1
+  - Requests==2.32.3
+  - urllib3==2.2.2
 
 Puedes instalar los paquetes requeridos utilizando pip:
 
@@ -24,6 +24,9 @@ pip install requests redshift_connector pandas python-dotenv numpy urllib3
 ## Docker
 Commandos
 ```
+docker-compose down
+docker-compose up -d
+
 docker stop $(docker ps -q)
 docker build -t my-airflow-image .
 docker run -d -p 8080:8080 my-airflow-image
