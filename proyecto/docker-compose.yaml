@@ -1,4 +1,3 @@
-version: '3'
 services:
   airflow:
     container_name: ProyectoFinal
@@ -12,6 +11,7 @@ services:
       - ./dags:/app/airflow/dags
       - ./logs:/app/airflow/logs
       - ./plugins:/app/airflow/plugins
+      - ./variables.json:/app/airflow/variables.json
     ports:
       - "8080:8080"
     entrypoint: ["/entrypoint.sh"]

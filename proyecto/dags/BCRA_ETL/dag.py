@@ -6,12 +6,13 @@ from datetime import timedelta, datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from BCRA_ETL.tasks import PrincipalesVariablesBCRA, CargaTipoCambioMinorista, ValidarVariables, CargaTipoCambioMayorista
+from BCRA_ETL.tasks import PrincipalesVariablesBCRA, CargaTipoCambioMinorista, ValidarVariables, CargaTipoCambioMayorista, validar_dia_cotizacion
 
 # Argumentos por defecto para el DAG
 default_args = {
     'owner': 'Alejandro I.',
     'start_date': datetime(2024,5,29),
+    'max_active_runs': 1,
     'retries':5,
     'retry_delay': timedelta(minutes=5)
 }
@@ -28,7 +29,7 @@ BC_dag = DAG(
 
 # Tareas
 ##1. Extraccion
-task_1 = PythonOperator(
+get_prin_var = PythonOperator(
     task_id='Principales_Variables_BCRA',
     python_callable=PrincipalesVariablesBCRA,
     op_args=["{{ ds }} {{ logical_date.hour }}"],
@@ -37,16 +38,16 @@ task_1 = PythonOperator(
 )
 
 #2. Extraccion
-task_2 = PythonOperator(
+get_tipo_cambio_minorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Minorista',
     python_callable=CargaTipoCambioMinorista,
-    op_args=["{{ ds }} {{ logical_date.hour }}"],
+    op_kwargs=["{{ ds }} {{ logical_date.hour }}"],
     dag=BC_dag,
     provide_context=True
 )
 
 #3. Process
-task_3 = PythonOperator(
+val_variables = PythonOperator(
     task_id='Validar_Datos',
     python_callable=ValidarVariables,
     op_args=["{{ ds }} {{ logical_date.hour }}"],
@@ -55,7 +56,7 @@ task_3 = PythonOperator(
 )
 
 #3. Process
-task_4 = PythonOperator(
+get_tipo_cambio_mayorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Mayorista',
     python_callable=CargaTipoCambioMayorista,
     op_args=["{{ ds }} {{ logical_date.hour }}"],
@@ -63,5 +64,16 @@ task_4 = PythonOperator(
     provide_context=True
 )
 
+#3. Process
+validar_fecha_cotizacion = PythonOperator(
+    task_id='validar_fecha_cotizacion_task',
+    python_callable=validar_dia_cotizacion,
+    op_kwargs={'hour': "{{ logical_date.hour }}"},
+    dag=BC_dag,
+    provide_context=True
+)
+
 # Definicion orden de tareas
-task_1 >> task_3 >> task_2 >> task_4
+get_prin_var >> val_variables
+validar_fecha_cotizacion >> get_tipo_cambio_minorista
+validar_fecha_cotizacion >> get_tipo_cambio_mayorista

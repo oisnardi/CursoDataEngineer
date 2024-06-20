@@ -2,7 +2,7 @@
 # Fecha: 17/06/2024
 # BRCR Helper
 
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta
 import os
 import time
 
@@ -12,15 +12,17 @@ import pandas as pd
 import numpy as np
 from urllib3.exceptions import InsecureRequestWarning
 from io import StringIO
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from airflow.models import Variable
+from airflow.exceptions import AirflowException
 
-from BCRA_ETL.fechas import validar_dia_no_laborable, validar_feriado
+from BCRA_ETL.helpers.fechas import validar_dia_no_laborable, validar_feriado
+from BCRA_ETL.helpers.email import EnviarCorreo
+
+from airflow.models.taskinstance import TaskInstance
 
 #region Variables
 
-# BCRA APÏ v2.0
+# BCRA API v2.0
 bcra_baseurl = "https://api.bcra.gob.ar"
 bcra_principalesvariables = "/estadisticas/v2.0/principalesvariables"
 bcra_datosvariables = "/estadisticas/v2.0/DatosVariable/{variable}/{fechadesde}/{fechahasta}"
@@ -62,9 +64,6 @@ variables = [
         {'id': '42', 'title': 'Pases pasivos para el BCRA - Saldos (en millones de pesos)', 'tablename': 'Pases_Pasivos_BCRA_Saldos', 'filterbyDate': True}
     ]
 
-max_dolar_mayorista = 920.10
-max_dolar_minorista = 941.91
-
 print(bcra_baseurl)
 print(bcra_principalesvariables)
 print(bcra_datosvariables)
@@ -100,17 +99,7 @@ print(f"fechadesde: {fechadesde}")
 print(f"fechahasta: {fechahasta}")
 print("\n")
 
-#Email Settings
-subject = "Notificación Airflow"
-to_email = "aleoi84@hotmail.com"
-from_email = "alejandro@yopmail.com"
-smtp_server = "smtp-relay.brevo.com"
-smtp_port = 587
 
-with open(dag_path+'/keys/'+"email_login.txt",'r') as f:
-    login= f.read()
-with open(dag_path+'/keys/'+"email_pwd.txt",'r') as f:
-    password= f.read()
 
 #endregion
 
@@ -133,7 +122,7 @@ def get_data(url):
             #raise Exception(f"Error {data_json['status']}. {'.'.join(data_json['errorMessages'])}")
     except requests.exceptions.RequestException as e:
         print("*** get_data ***")
-        print(f"Error en la solicitud: {e}")
+        raise AirflowException(f"Error en la solicitud: {e}")
 
 def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
     if "fecha" in df.columns:
@@ -274,12 +263,7 @@ def start_delay():
 
 def get_variable_by_id(variables, id):
     return next((item for item in variables if item['id'] == id), None)
-
-def GetNowTime():
-    now = datetime.now()
-    current_time = now.strftime("%H:%M")
-    return current_time
-    
+ 
 def PrincipalesVariablesBCRA(exec_date, **kwargs):
     print(f"Adquiriendo Principales Variables BCRA para la fecha: {exec_date}")
     #*****************************
@@ -300,7 +284,7 @@ def PrincipalesVariablesBCRA(exec_date, **kwargs):
     start_delay()
     #endregion
 
-def CargaDatosVariables(exec_date, **kwargs):
+def CargaDatosVariables(exec_date, ):
     print(f"Carga Datos Variables para la fecha: {exec_date}")
     #*****************************
     #region Procesar todas las Variables
@@ -315,7 +299,7 @@ def CargaDatosVariables(exec_date, **kwargs):
         # Set Variable
         url_full = url_full.replace("{variable}", variable['id'])
         # Set FechaDesde
-        url_full = url_full.replace("{fechadesde}", fechadesde)
+        url_full = url_full.replace("{fechadesde}", fechahasta)
         # Set FechaHasta
         url_full = url_full.replace("{fechahasta}", fechahasta)
 
@@ -333,10 +317,6 @@ def CargarVariable (exec_date, variable, **kwargs):
     print(f"Inicio carga {variable['title']} para la fecha: {exec_date}")
     #*****************************
 
-    if(validar_dia_no_laborable(fechadesde) or validar_feriado(fechadesde)):
-        print(f"No se carga {fechadesde} es día no laborable o feriado")
-        return
-              
     url_full = f"{bcra_baseurl}{bcra_datosvariables}"
     table_name = variable['tablename']
 
@@ -344,9 +324,9 @@ def CargarVariable (exec_date, variable, **kwargs):
     # Set Variable
     url_full = url_full.replace("{variable}", variable['id'])
     # Set FechaDesde
-    url_full = url_full.replace("{fechadesde}", fechadesde)
+    url_full = url_full.replace("{fechadesde}", fechahasta)
     # Set FechaHasta
-    url_full = url_full.replace("{fechahasta}", fechadesde)
+    url_full = url_full.replace("{fechahasta}", fechahasta)
 
     print(url_full)
 
@@ -363,8 +343,6 @@ def ValidarVariables(exec_date, **kwargs):
     df_json = kwargs['ti'].xcom_pull(key='PrincipalesVariablesBCRA', task_ids='Principales_Variables_BCRA')
     df = pd.read_json(StringIO(df_json))
     
-    #print(df.columns)
-
     # Obtener la fecha máxima para cada 'idvariable'
     max_fecha = df.groupby('idVariable')['fecha'].max().reset_index()
     
@@ -374,6 +352,8 @@ def ValidarVariables(exec_date, **kwargs):
 
     valorhoy = tipocambio['valor'].iloc[0]
     
+    max_dolar_minorista = Variable.get("max_dolar_minorista")
+    
     print(f"El tipo de cambio es : {valorhoy}")
     print(f"Valor máximo : {max_dolar_minorista}")
 
@@ -381,44 +361,39 @@ def ValidarVariables(exec_date, **kwargs):
         EnviarCorreo("Dolar caroooo!! Warning")
     else:
         print("Dolar calmo")
-    
-def EnviarCorreo(msg):
-    current_time = GetNowTime()
-    print(f"Enviando correo para la fecha: {current_time}")
-    try:
-        body=msg
-        # Crear mensaje
-        msg = MIMEMultipart()
-        msg['From'] = from_email
-        msg['To'] = to_email
-        msg['Subject'] = subject
 
-        # Agregar cuerpo del correo
-        msg.attach(MIMEText(body, 'plain'))
-
-        # Configurar la conexión al servidor SMTP
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(login, password)
-
-        # Enviar correo
-        server.sendmail(from_email, to_email, msg.as_string())
-        server.quit()
-
-        print(f'Correo enviado exitosamente a {to_email}')
-    except Exception as e:
-        print(f'Error al enviar el correo: {e}')
-
-def CargaTipoCambioMinorista(exec_date):
+def CargaTipoCambioMinorista(exec_date, **kwargs):
     variable = get_variable_by_id(variables, '4')
     if (variable):
-        CargarVariable(exec_date, variable)
+        diahabil = kwargs['ti'].xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
+    
+        if (diahabil==False):
+            raise AirflowException("CargaTipoCambioMinorista: Día no laborable, no se puede continuar")
+        else:
+            CargarVariable(exec_date, variable)
     else:
-        print("Error variable inexistente")
+        raise AirflowException("Error CargaTipoCambioMinorista variable inexistente, no se puede continuar")
         
-def CargaTipoCambioMayorista (exec_date):
+def CargaTipoCambioMayorista (exec_date, **kwargs):
     variable = get_variable_by_id(variables, '5')
     if (variable):
-        CargarVariable(exec_date, variable)
+        diahabil = kwargs['ti'].xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
+    
+        if (diahabil==False):
+            raise AirflowException("CargaTipoCambioMayorista: Día no laborable, no se puede continuar")
+        else:
+            CargarVariable(exec_date, variable)
     else:
-        print("Error variable inexistente")
+        raise AirflowException("Error CargaTipoCambioMayorista variable inexistente, no se puede continuar")
+
+def validar_dia_cotizacion(hour, **kwargs):
+    valor=False
+    print(f"{hour}: validando fecha")
+    if(validar_dia_no_laborable(fechahasta) or validar_feriado(fechahasta)):
+        print(f"La fecha: {fechahasta} es día no laborable o feriado")
+        valor= True
+    else: 
+        print(f"La fecha: {fechahasta} corresponde a día hábil")
+        valor= False
+    
+    kwargs['ti'].xcom_push(key='diahabil', value=valor)
