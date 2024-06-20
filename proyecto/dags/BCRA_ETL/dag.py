@@ -6,12 +6,13 @@ from datetime import timedelta, datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from BCRA_ETL.tasks import PrincipalesVariablesBCRA, CargaTipoCambioMinorista, ValidarVariables, CargaTipoCambioMayorista, validar_dia_cotizacion
+from BCRA_ETL.tasks import PrincipalesVariablesBCRA, CargaTipoCambioMinorista, CargaTipoCambioMayorista
+from BCRA_ETL.validar import validar_dia_cotizacion, ValidarVariables
 
 # Argumentos por defecto para el DAG
 default_args = {
     'owner': 'Alejandro I.',
-    'start_date': datetime(2024,5,29),
+    'start_date': datetime(2024,6,19),
     'max_active_runs': 1,
     'retries':5,
     'retry_delay': timedelta(minutes=5)
