@@ -2,6 +2,6 @@
 **/*.env
 proyecto/dags/__pycache__
 proyecto/dags/*/__pycache__/*
-proyecto/dags/BCRA_ETL/helpers/*/__pycache__/*
+proyecto/dags/BCRA_ETL/helpers/__pycache__
 proyecto/logs/
 proyecto/keys/*.txt
