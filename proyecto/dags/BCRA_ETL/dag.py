@@ -27,8 +27,8 @@ BC_dag = DAG(
     catchup=False
 )
 
-# Tareas
-##1. Extraccion
+#region OBTENER DATA
+
 get_prin_var = PythonOperator(
     task_id='Principales_Variables_BCRA',
     python_callable=PrincipalesVariablesBCRA,
@@ -37,7 +37,6 @@ get_prin_var = PythonOperator(
     provide_context=True
 )
 
-#2. Extraccion
 get_tipo_cambio_minorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Minorista',
     python_callable=CargaTipoCambioMinorista,
@@ -46,16 +45,6 @@ get_tipo_cambio_minorista = PythonOperator(
     provide_context=True
 )
 
-#3. Process
-val_variables = PythonOperator(
-    task_id='Validar_Datos',
-    python_callable=ValidarVariables,
-    op_args=["{{ ds }} {{ logical_date.hour }}"],
-    dag=BC_dag,
-    provide_context=True
-)
-
-#3. Process
 get_tipo_cambio_mayorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Mayorista',
     python_callable=CargaTipoCambioMayorista,
@@ -64,16 +53,45 @@ get_tipo_cambio_mayorista = PythonOperator(
     provide_context=True
 )
 
-#3. Process
+#endregion
+
+
+#region VALIDACIONES
+val_variables = PythonOperator(
+    task_id='Validar_Datos',
+    python_callable=ValidarVariables,
+    op_args=["{{ ds }} {{ logical_date.hour }}"],
+    dag=BC_dag,
+    provide_context=True
+)
+
 validar_fecha_cotizacion = PythonOperator(
-    task_id='validar_fecha_cotizacion_task',
+    task_id='Validar_fecha_cotizacion_task',
     python_callable=validar_dia_cotizacion,
     op_kwargs={'hour': "{{ logical_date.hour }}"},
     dag=BC_dag,
     provide_context=True
 )
 
+validar_tipo_cambio_minorista = PythonOperator(
+    task_id='Validar_tipo_cambio_minorista',
+    python_callable=validar_dia_cotizacion,
+    op_kwargs={'hour': "{{ logical_date.hour }}"},
+    dag=BC_dag,
+    provide_context=True
+)
+
+validar_tipo_cambio_mayorista = PythonOperator(
+    task_id='Validar_tipo_cambio_mayorista',
+    python_callable=validar_dia_cotizacion,
+    op_kwargs={'hour': "{{ logical_date.hour }}"},
+    dag=BC_dag,
+    provide_context=True
+)
+
+#endregion
+
 # Definicion orden de tareas
 get_prin_var >> val_variables
-validar_fecha_cotizacion >> get_tipo_cambio_minorista
-validar_fecha_cotizacion >> get_tipo_cambio_mayorista
+validar_fecha_cotizacion >> get_tipo_cambio_minorista >> validar_tipo_cambio_minorista
+validar_fecha_cotizacion >> get_tipo_cambio_mayorista >> validar_tipo_cambio_mayorista

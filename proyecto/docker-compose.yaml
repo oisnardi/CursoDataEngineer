@@ -11,7 +11,7 @@ services:
       - ./dags:/app/airflow/dags
       - ./logs:/app/airflow/logs
       - ./plugins:/app/airflow/plugins
-      - ./variables.json:/app/airflow/variables.json
+      - ./variables_airflow.json:/app/airflow/variables.json
     ports:
       - "8080:8080"
     entrypoint: ["/entrypoint.sh"]

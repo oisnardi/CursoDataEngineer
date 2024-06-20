@@ -37,6 +37,7 @@ COPY ./keys/email_login.txt /app/keys/email_login.txt
 COPY ./keys/email_pwd.txt /app/keys/email_pwd.txt
 # raw_data
 COPY ./raw_data/feriados.json /app/raw_data/feriados.json
+COPY ./raw_data/variables_bcra.json /app/raw_data/variables_bcra.json
 
 # Imprime el contenido del directorio de destino después de la copia
 RUN ls -la /app/keys

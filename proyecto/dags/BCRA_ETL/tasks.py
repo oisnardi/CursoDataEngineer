@@ -3,6 +3,7 @@
 # BRCR Helper
 
 from datetime import date, timedelta
+import json
 import os
 import time
 
@@ -17,66 +18,28 @@ from airflow.exceptions import AirflowException
 
 from BCRA_ETL.helpers.fechas import validar_dia_no_laborable, validar_feriado
 from BCRA_ETL.helpers.email import EnviarCorreo
-
-from airflow.models.taskinstance import TaskInstance
+from dotenv import dotenv_values
 
 #region Variables
 
 # BCRA API v2.0
+dag_path = os.getcwd() 
+
+config = dotenv_values(dag_path+'/dags/BCRA_ETL/'+"parameters.env")
+
 bcra_baseurl = "https://api.bcra.gob.ar"
 bcra_principalesvariables = "/estadisticas/v2.0/principalesvariables"
 bcra_datosvariables = "/estadisticas/v2.0/DatosVariable/{variable}/{fechadesde}/{fechahasta}"
 
-variables = [
-        {'id': '1', 'title': 'Reservas Internacionales del BCRA (en millones de dólares - cifras provisorias sujetas a cambio de valuación)', 'tablename': 'Reservas_Internacionales_BCRA', 'filterbyDate': True},
-        {'id': '4', 'title': 'Tipo de Cambio Minorista ($ por USD) Comunicación B 9791 - Promedio vendedor', 'tablename': 'Tipo_Cambio_Minorista', 'filterbyDate': True},
-        {'id': '5', 'title': 'Tipo de Cambio Mayorista ($ por USD) Comunicación A 3500 - Referencia', 'tablename': 'Tipo_Cambio_Mayorista', 'filterbyDate': True},
-        {'id': '6', 'title': 'Tasa de Política Monetaria (en % n.a.)', 'tablename': 'Tasa_Politica_Monetaria_NA', 'filterbyDate': True},
-        {'id': '7', 'title': 'BADLAR en pesos de bancos privados (en % n.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
-        {'id': '8', 'title': 'TM20 en pesos de bancos privados (en % n.a.)', 'tablename': 'TM20_Pesos_Bancos_Privados_NA', 'filterbyDate': True},
-        {'id': '9', 'title': 'Tasas de interés de las operaciones de pase activas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Activas_BCRA_NA', 'filterbyDate': True},
-        {'id': '10', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % n.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_NA', 'filterbyDate': True},
-        {'id': '11', 'title': 'Tasas de interés por préstamos entre entidades financiera privadas (BAIBAR) (en % n.a.)', 'tablename': 'Tasas_Interes_Prestamos_Entidades_Privadas_NA', 'filterbyDate': True},
-        {'id': '12', 'title': 'Tasas de interés por depósitos a 30 días de plazo en entidades financieras (en % n.a.)', 'tablename': 'Tasas_Interes_Depositos_30_Dias_NA', 'filterbyDate': True},
-        {'id': '13', 'title': 'Tasa de interés de préstamos por adelantos en cuenta corriente', 'tablename': 'Tasa_Interes_Adelantos_Cuenta_Corriente', 'filterbyDate': True},
-        {'id': '14', 'title': 'Tasa de interés de préstamos personales', 'tablename': 'Tasa_Interes_Prestamos_Personales', 'filterbyDate': True},
-        {'id': '15', 'title': 'Base monetaria - Total (en millones de pesos)', 'tablename': 'Base_Monetaria_Total', 'filterbyDate': True},
-        {'id': '16', 'title': 'Circulación monetaria (en millones de pesos)', 'tablename': 'Circulacion_Monetaria', 'filterbyDate': True},
-        {'id': '17', 'title': 'Billetes y monedas en poder del público (en millones de pesos)', 'tablename': 'Billetes_Monedas_Publico', 'filterbyDate': True},
-        {'id': '18', 'title': 'Efectivo en entidades financieras (en millones de pesos)', 'tablename': 'Efectivo_Entidades_Financieras', 'filterbyDate': True},
-        {'id': '19', 'title': 'Depósitos de los bancos en cta. cte. en pesos en el BCRA (en millones de pesos)', 'tablename': 'Depositos_Bancos_Cta_Cte_BCRA', 'filterbyDate': True},
-        {'id': '21', 'title': 'Depósitos en efectivo en las entidades financieras - Total (en millones de pesos)', 'tablename': 'Depositos_Efectivo_Entidades_Financieras', 'filterbyDate': True},
-        {'id': '22', 'title': 'En cuentas corrientes (neto de utilización FUCO) (en millones de pesos)', 'tablename': 'Cuentas_Corrientes_Neto_FUCO', 'filterbyDate': True},
-        {'id': '23', 'title': 'En Caja de ahorros (en millones de pesos)', 'tablename': 'Caja_Ahorros', 'filterbyDate': True},
-        {'id': '24', 'title': 'A plazo (incluye inversiones y excluye CEDROS) (en millones de pesos)', 'tablename': 'Depositos_Plazo', 'filterbyDate': True},
-        {'id': '25', 'title': 'M2 privado, promedio móvil de 30 días, variación interanual (en %)', 'tablename': 'M2_Privado_Variacion_Interanual', 'filterbyDate': True},
-        {'id': '26', 'title': 'Préstamos de las entidades financieras al sector privado (en millones de pesos)', 'tablename': 'Prestamos_Entidades_Financieras_Sector_Privado', 'filterbyDate': True},
-        {'id': '27', 'title': 'Inflación mensual (variación en %)', 'tablename': 'Inflacion_Mensual', 'filterbyDate': True},
-        {'id': '28', 'title': 'Inflación interanual (variación en % i.a.)', 'tablename': 'Inflacion_Interanual', 'filterbyDate': True},
-        {'id': '29', 'title': 'Inflación esperada - REM próximos 12 meses - MEDIANA (variación en % i.a)', 'tablename': 'Inflacion_Esperada_REM', 'filterbyDate': True},
-        {'id': '30', 'title': 'CER (Base 2.2.2002=1)', 'tablename': 'CER', 'filterbyDate': True},
-        {'id': '31', 'title': 'Unidad de Valor Adquisitivo (UVA) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Valor_Adquisitivo_UVA', 'filterbyDate': True},
-        {'id': '32', 'title': 'Unidad de Vivienda (UVI) (en pesos -con dos decimales-, base 31.3.2016=14.05)', 'tablename': 'Unidad_Vivienda_UVI', 'filterbyDate': True},
-        {'id': '34', 'title': 'Tasa de Política Monetaria (en % e.a.)', 'tablename': 'Tasa_Politica_Monetaria_EA', 'filterbyDate': True},
-        {'id': '35', 'title': 'BADLAR en pesos de bancos privados (en % e.a.)', 'tablename': 'BADLAR_Pesos_Bancos_Privados_EA', 'filterbyDate': True},
-        {'id': '40', 'title': 'Índice para Contratos de Locación (ICL-Ley 27.551, con dos decimales, base 30.6.20=1)', 'tablename': 'Indice_Contratos_Locacion', 'filterbyDate': True},
-        {'id': '41', 'title': 'Tasas de interés de las operaciones de pase pasivas para el BCRA, a 1 día de plazo (en % e.a.)', 'tablename': 'Tasas_Interes_Pase_Pasivas_BCRA_EA', 'filterbyDate': True},
-        {'id': '42', 'title': 'Pases pasivos para el BCRA - Saldos (en millones de pesos)', 'tablename': 'Pases_Pasivos_BCRA_Saldos', 'filterbyDate': True}
-    ]
-
 print(bcra_baseurl)
 print(bcra_principalesvariables)
 print(bcra_datosvariables)
-
-#config = dotenv_values("/opt/airflow/parameters.env")
 
 # Configura los headers con el token de autorización
 headers = {
     "Accept-Language": "es-AR",
     'content-type': 'application/json; charset=utf8'
 }
-
-dag_path = os.getcwd() 
 
 # AWS RedShift Settings
 aws_host = "data-engineer-cluster.cyhh5bfevlmn.us-east-1.redshift.amazonaws.com"
@@ -98,8 +61,6 @@ print(f"BaseURL: {bcra_baseurl}")
 print(f"fechadesde: {fechadesde}")
 print(f"fechahasta: {fechahasta}")
 print("\n")
-
-
 
 #endregion
 
@@ -261,8 +222,31 @@ def start_delay():
         time.sleep(1)    
     print("\n")
 
-def get_variable_by_id(variables, id):
-    return next((item for item in variables if item['id'] == id), None)
+def get_variable_by_id(id):
+    file_path = dag_path + '/raw_data/' + "variables_bcra.json"
+
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    
+    variable = None
+    
+    for record in data["variables"]:
+        print(record["id"])
+        if record["id"] == id:
+            variable = record
+            break
+        
+    variable_dict = None
+    if variable:
+        # Convertir el registro en un diccionario (ya es un diccionario en este caso)
+        variable_dict = dict(variable)
+        print("Variable encontrada y convertido en diccionario:")
+        print(variable_dict)
+    else:
+        
+        print("Variable con id = {id} no encontrado.")
+ 
+    return variable_dict
  
 def PrincipalesVariablesBCRA(exec_date, **kwargs):
     print(f"Adquiriendo Principales Variables BCRA para la fecha: {exec_date}")
@@ -284,34 +268,6 @@ def PrincipalesVariablesBCRA(exec_date, **kwargs):
     start_delay()
     #endregion
 
-def CargaDatosVariables(exec_date, ):
-    print(f"Carga Datos Variables para la fecha: {exec_date}")
-    #*****************************
-    #region Procesar todas las Variables
-    
-    for variable in variables:
-        print(variable['title'])
-        start_time = time.time()
-        url_full = f"{bcra_baseurl}{bcra_datosvariables}"
-        table_name = variable['tablename']
-
-        print(url_full)
-        # Set Variable
-        url_full = url_full.replace("{variable}", variable['id'])
-        # Set FechaDesde
-        url_full = url_full.replace("{fechadesde}", fechahasta)
-        # Set FechaHasta
-        url_full = url_full.replace("{fechahasta}", fechahasta)
-
-        print(url_full)
-
-        df = get_data(url_full)
-        process_df(df, table_name, start_time)
-
-        start_delay()
-
-    #endregion
-
 def CargarVariable (exec_date, variable, **kwargs):
     start_time = time.time()
     print(f"Inicio carga {variable['title']} para la fecha: {exec_date}")
@@ -322,7 +278,7 @@ def CargarVariable (exec_date, variable, **kwargs):
 
     print(url_full)
     # Set Variable
-    url_full = url_full.replace("{variable}", variable['id'])
+    url_full = url_full.replace("{variable}", str(variable['id']))
     # Set FechaDesde
     url_full = url_full.replace("{fechadesde}", fechahasta)
     # Set FechaHasta
@@ -363,7 +319,7 @@ def ValidarVariables(exec_date, **kwargs):
         print("Dolar calmo")
 
 def CargaTipoCambioMinorista(exec_date, **kwargs):
-    variable = get_variable_by_id(variables, '4')
+    variable = get_variable_by_id(4)
     if (variable):
         diahabil = kwargs['ti'].xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
     
@@ -375,7 +331,7 @@ def CargaTipoCambioMinorista(exec_date, **kwargs):
         raise AirflowException("Error CargaTipoCambioMinorista variable inexistente, no se puede continuar")
         
 def CargaTipoCambioMayorista (exec_date, **kwargs):
-    variable = get_variable_by_id(variables, '5')
+    variable = get_variable_by_id(5)
     if (variable):
         diahabil = kwargs['ti'].xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
     
@@ -391,9 +347,9 @@ def validar_dia_cotizacion(hour, **kwargs):
     print(f"{hour}: validando fecha")
     if(validar_dia_no_laborable(fechahasta) or validar_feriado(fechahasta)):
         print(f"La fecha: {fechahasta} es día no laborable o feriado")
-        valor= True
+        diahabil= False
     else: 
         print(f"La fecha: {fechahasta} corresponde a día hábil")
-        valor= False
+        diahabil= True
     
-    kwargs['ti'].xcom_push(key='diahabil', value=valor)
+    kwargs['ti'].xcom_push(key='diahabil', value=diahabil)
