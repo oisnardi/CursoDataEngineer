@@ -61,7 +61,7 @@ def validar_tc_minorista(**kwargs):
     print(f"Validando Tipo de Cambio Minorista para la fecha: {execution_date}")
     
     ti = kwargs['ti']
-    df_json = ti.xcom_pull(key='TipoCambioMinorista', task_ids='CargaTipoCambioMinorista')
+    df_json = ti.xcom_pull(key='TipoCambioMinorista', task_ids='Validar_tipo_cambio_minorista')
     df = pd.read_json(StringIO(df_json))
     
     # Obtener la fecha máxima para cada 'idvariable'
@@ -87,7 +87,7 @@ def validar_tc_mayorista(**kwargs):
     print(f"Validando Tipo de Cambio Mayorista para la fecha: {execution_date}")
     
     ti = kwargs['ti']
-    df_json = ti.xcom_pull(key='TipoCambioMayorista', task_ids='CargaTipoCambioMayorista')
+    df_json = ti.xcom_pull(key='TipoCambioMayorista', task_ids='Validar_tipo_cambio_mayorista')
     df = pd.read_json(StringIO(df_json))
     
     # Obtener la fecha máxima para cada 'idvariable'
