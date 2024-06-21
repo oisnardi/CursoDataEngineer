@@ -60,6 +60,8 @@ Pwd: airflow
 
 ## Flujo del Script
 
+![Graph](images\Graph.jpg "Graph").
+
 - 1- Carga las variables de configuración desde el archivo .env.
 - 2- Extrae y carga los datos de las siguientes variables:
   - 2.1- Principales variables BCRA
