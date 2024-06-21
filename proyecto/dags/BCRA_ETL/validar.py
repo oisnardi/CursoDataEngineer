@@ -2,36 +2,37 @@
 # Fecha: 20/06/2024
 # BRCR Validaciones
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from airflow.models import Variable
 from BCRA_ETL.helpers.fechas import validar_dia_no_laborable, validar_feriado
 from BCRA_ETL.helpers.email import EnviarCorreo
 from io import StringIO
 import pandas as pd
 
-# Seteamos las fechas a actualizar data
-fechahoy = date.today()
-fechaayer = fechahoy - timedelta(days=1)
-fechadesde= fechaayer.strftime("%Y-%m-%d")
-fechahasta = fechahoy.strftime("%Y-%m-%d")
-
-def validar_dia_cotizacion(hour, **kwargs):
-    valor=False
-    print(f"{hour}: validando fecha")
-    if(validar_dia_no_laborable(fechahasta) or validar_feriado(fechahasta)):
-        print(f"La fecha: {fechahasta} es día no laborable o feriado")
+def validar_dia_cotizacion(**kwargs):
+    execution_date = kwargs['logical_date']
+    fecha_cotizacion = datetime(execution_date.year, execution_date.month, execution_date.day)
+    print(f"Validando fecha de cotización: {fecha_cotizacion}")
+    
+    diahabil=False
+    ti = kwargs['ti']
+    
+    if(validar_dia_no_laborable(fecha_cotizacion) or validar_feriado(fecha_cotizacion)):
+        print(f"La fecha: {fecha_cotizacion} es día no laborable o feriado")
         diahabil= False
     else: 
-        print(f"La fecha: {fechahasta} corresponde a día hábil")
+        print(f"La fecha: {fecha_cotizacion} corresponde a día hábil")
         diahabil= True
     
-    kwargs['ti'].xcom_push(key='diahabil', value=diahabil)
+    ti.xcom_push(key='diahabil', value=diahabil)
     
 
-def ValidarVariables(exec_date, **kwargs):
-    print(f"Validando Tipo de Cambio para la fecha: {exec_date}")
+def ValidarVariables(**kwargs):
+    execution_date = kwargs['logical_date']
+    print(f"Validando Tipo de Cambio para la fecha: {execution_date}")
     
-    df_json = kwargs['ti'].xcom_pull(key='PrincipalesVariablesBCRA', task_ids='Principales_Variables_BCRA')
+    ti = kwargs['ti']
+    df_json = ti.xcom_pull(key='PrincipalesVariablesBCRA', task_ids='Principales_Variables_BCRA')
     df = pd.read_json(StringIO(df_json))
     
     # Obtener la fecha máxima para cada 'idvariable'
@@ -52,4 +53,15 @@ def ValidarVariables(exec_date, **kwargs):
         EnviarCorreo("Dolar caroooo!! Warning")
     else:
         print("Dolar calmo")
-    
+
+
+def validar_tc_minorista(**kwargs):
+    execution_date = kwargs['logical_date']
+    print(f"Validando Tipo de Cambio para la fecha: {execution_date}")
+    print(f"Validando Tipo de Cambio Minorista para la fecha: {execution_date}")
+
+
+def validar_tc_mayorista(**kwargs):
+    execution_date = kwargs['logical_date']
+    print(f"Validando Tipo de Cambio para la fecha: {execution_date}")
+    print(f"Validando Tipo de Cambio Mayorista para la fecha: {execution_date}")

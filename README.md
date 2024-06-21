@@ -2,7 +2,28 @@
 
 # BCRA Data Extraction and Loading Script
 
-ETL Docker, Airflow + Dag script extrae datos de la API del Banco Central de la República Argentina (BCRA) y los carga en una base de datos Amazon Redshift. Los datos extraídos incluyen principales variables, tipo de cambio minorista y mayorista, tasa de política monetaria y BADLAR en pesos de bancos privados.
+# Entrega Proyecto final:
+- Pipeline obtiene datos de 3 Apis del BCRA y utiliza 2 fuentes de datos locales en desde raw_data en formato JSon.
+
+- Los datos se almacenan en Data Warehouse en Amazon RedShift
+
+- El proceso está automatizado, extraé, transforma y carga.
+
+- El proceso tiene 2 alertas por email, con valores configurables desde Airflow. Configurado servidor con SMTP
+
+- El codigo se separó en varios archivos Python, dags, helpers, tasks, etc. a fin de facilitar el mantenimiento y reutilización de código.
+
+- Mecanismos de alerta, se validan datos máximos y se notifica por mail, los valores, destinatarios pueden ser modificados desde Airflow.
+
+- DAG: Todo está automatizado para iniciar correctamente, con tareas previas de validación.
+
+- Docker: El contenedor pesa menos de 1GB
+
+- Se agrega un Script en carpeta anexa, pero el mismo nos se necesita, el codigo tiene la capacidad de generar los scripts DDL para crear las tablas necesarias.
+
+Adicionales:
+- Se utiliza backfill con context entre tareas, para compartir datos.
+- Extración de datos desde archivos locales, ya mencionado
 
 ## Requisitos
 
@@ -24,12 +45,9 @@ pip install requests redshift_connector pandas python-dotenv numpy urllib3
 ## Docker
 Commandos
 ```
-docker-compose down
+docker-compose build
 docker-compose up -d
-
-docker stop $(docker ps -q)
-docker build -t my-airflow-image .
-docker run -d -p 8080:8080 my-airflow-image
+docker-compose down
 ```
 
 ## Login Airflow

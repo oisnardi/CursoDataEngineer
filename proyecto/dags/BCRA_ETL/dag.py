@@ -7,7 +7,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 
 from BCRA_ETL.tasks import PrincipalesVariablesBCRA, CargaTipoCambioMinorista, CargaTipoCambioMayorista
-from BCRA_ETL.validar import validar_dia_cotizacion, ValidarVariables
+from BCRA_ETL.validar import validar_dia_cotizacion, ValidarVariables, validar_tc_minorista, validar_tc_mayorista
 
 # Argumentos por defecto para el DAG
 default_args = {
@@ -33,7 +33,6 @@ BC_dag = DAG(
 get_prin_var = PythonOperator(
     task_id='Principales_Variables_BCRA',
     python_callable=PrincipalesVariablesBCRA,
-    op_args=["{{ ds }} {{ logical_date.hour }}"],
     dag=BC_dag,
     provide_context=True
 )
@@ -41,7 +40,6 @@ get_prin_var = PythonOperator(
 get_tipo_cambio_minorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Minorista',
     python_callable=CargaTipoCambioMinorista,
-    op_kwargs=["{{ ds }} {{ logical_date.hour }}"],
     dag=BC_dag,
     provide_context=True
 )
@@ -49,7 +47,6 @@ get_tipo_cambio_minorista = PythonOperator(
 get_tipo_cambio_mayorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Mayorista',
     python_callable=CargaTipoCambioMayorista,
-    op_args=["{{ ds }} {{ logical_date.hour }}"],
     dag=BC_dag,
     provide_context=True
 )
@@ -61,7 +58,6 @@ get_tipo_cambio_mayorista = PythonOperator(
 val_variables = PythonOperator(
     task_id='Validar_Datos',
     python_callable=ValidarVariables,
-    op_args=["{{ ds }} {{ logical_date.hour }}"],
     dag=BC_dag,
     provide_context=True
 )
@@ -69,23 +65,20 @@ val_variables = PythonOperator(
 validar_fecha_cotizacion = PythonOperator(
     task_id='Validar_fecha_cotizacion_task',
     python_callable=validar_dia_cotizacion,
-    op_kwargs={'hour': "{{ logical_date.hour }}"},
     dag=BC_dag,
     provide_context=True
 )
 
 validar_tipo_cambio_minorista = PythonOperator(
     task_id='Validar_tipo_cambio_minorista',
-    python_callable=validar_dia_cotizacion,
-    op_kwargs={'hour': "{{ logical_date.hour }}"},
+    python_callable=validar_tc_minorista,
     dag=BC_dag,
     provide_context=True
 )
 
 validar_tipo_cambio_mayorista = PythonOperator(
     task_id='Validar_tipo_cambio_mayorista',
-    python_callable=validar_dia_cotizacion,
-    op_kwargs={'hour': "{{ logical_date.hour }}"},
+    python_callable=validar_tc_mayorista,
     dag=BC_dag,
     provide_context=True
 )

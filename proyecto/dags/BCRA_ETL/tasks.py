@@ -2,7 +2,7 @@
 # Fecha: 17/06/2024
 # BRCR Helper
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import json
 import os
 import time
@@ -21,7 +21,10 @@ from dotenv import dotenv_values
 # BCRA API v2.0
 dag_path = os.getcwd() 
 
-config = dotenv_values(dag_path+'/dags/BCRA_ETL/'+"parameters.env")
+env_path= dag_path+"/airflow/dags/BCRA_ETL/"+"parameters.env"
+print(f"parameters file: {env_path}")
+
+config = dotenv_values(env_path)
 
 bcra_baseurl = config.get("bcra_baseurl")
 bcra_principalesvariables = config.get("bcra_principalesvariables")
@@ -38,8 +41,8 @@ headers = {
 }
 
 # AWS RedShift Settings
-aws_host = "data-engineer-cluster.cyhh5bfevlmn.us-east-1.redshift.amazonaws.com"
-aws_port = 5439
+aws_host = config.get("aws_host")
+aws_port = config.get("aws_port")
 with open(dag_path+'/keys/'+"db.txt",'r') as f:
     aws_db= f.read()
 with open(dag_path+'/keys/'+"user.txt",'r') as f:
@@ -48,14 +51,15 @@ with open(dag_path+'/keys/'+"pwd.txt",'r') as f:
     aws_pwd= f.read()
 
 # Seteamos las fechas a actualizar data
-fechahoy = date.today()
-fechaayer = fechahoy - timedelta(days=1)
-fechadesde= fechaayer.strftime("%Y-%m-%d")
-fechahasta = fechahoy.strftime("%Y-%m-%d")
+#fechahoy = date.today()
+#fechahoy = datetime.strptime("19/06/2024", "%d/%m/%Y")
+#fechaayer = fechahoy - timedelta(days=1)
+#fechadesde= fechaayer.strftime("%Y-%m-%d")
+#fechahasta = fechahoy.strftime("%Y-%m-%d")
 
-print(f"BaseURL: {bcra_baseurl}")
-print(f"fechadesde: {fechadesde}")
-print(f"fechahasta: {fechahasta}")
+#print(f"BaseURL: {bcra_baseurl}")
+#print(f"fechadesde: {fechadesde}")
+#print(f"fechahasta: {fechahasta}")
 print("\n")
 
 #endregion
@@ -244,8 +248,9 @@ def get_variable_by_id(id):
  
     return variable_dict
  
-def PrincipalesVariablesBCRA(exec_date, **kwargs):
-    print(f"Adquiriendo Principales Variables BCRA para la fecha: {exec_date}")
+def PrincipalesVariablesBCRA(**kwargs):
+    execution_date = kwargs['logical_date']
+    print(f"Adquiriendo Principales Variables BCRA para la fecha: {execution_date}")
     #*****************************
     #region BCRA principales variables
     start_time = time.time()
@@ -264,9 +269,12 @@ def PrincipalesVariablesBCRA(exec_date, **kwargs):
     start_delay()
     #endregion
 
-def CargarVariable (exec_date, variable, **kwargs):
+def CargarVariable (variable, **kwargs):
+    execution_date = kwargs['logical_date']
+    fechahasta = execution_date.strftime("%Y-%m-%d")
+    
     start_time = time.time()
-    print(f"Inicio carga {variable['title']} para la fecha: {exec_date}")
+    print(f"Inicio carga {variable['title']} para la fecha: {execution_date}")
     #*****************************
 
     url_full = f"{bcra_baseurl}{bcra_datosvariables}"
@@ -289,27 +297,29 @@ def CargarVariable (exec_date, variable, **kwargs):
 
     #endregion
 
-def CargaTipoCambioMinorista(exec_date, **kwargs):
+def CargaTipoCambioMinorista(**kwargs):
     variable = get_variable_by_id(4)
     if (variable):
-        diahabil = kwargs['ti'].xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
+        ti = kwargs['ti']
+        diahabil = ti.xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
     
         if (diahabil==False):
             raise AirflowException("CargaTipoCambioMinorista: Día no laborable, no se puede continuar")
         else:
-            CargarVariable(exec_date, variable)
+            CargarVariable(variable)
     else:
         raise AirflowException("Error CargaTipoCambioMinorista variable inexistente, no se puede continuar")
         
-def CargaTipoCambioMayorista (exec_date, **kwargs):
+def CargaTipoCambioMayorista (**kwargs):
     variable = get_variable_by_id(5)
     if (variable):
-        diahabil = kwargs['ti'].xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
+        ti = kwargs['ti']
+        diahabil = ti.xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
     
         if (diahabil==False):
             raise AirflowException("CargaTipoCambioMayorista: Día no laborable, no se puede continuar")
         else:
-            CargarVariable(exec_date, variable)
+            CargarVariable(variable)
     else:
         raise AirflowException("Error CargaTipoCambioMayorista variable inexistente, no se puede continuar")
 

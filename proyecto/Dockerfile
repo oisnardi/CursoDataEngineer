@@ -47,7 +47,7 @@ EXPOSE 8080
 
 # Inicializa la base de datos de Airflow y crea un usuario administrador
 RUN airflow db init 
-RUN airflow users create --username airflow --password airflow --firstname Admin --lastname User --role Admin --email admin@example.com
+RUN airflow users create --username airflow --password airflow --firstname Alejandro --lastname Isnardi --role Admin --email admin@example.com
 
 # Copia y establece el entrypoint
 COPY entrypoint.sh /entrypoint.sh
