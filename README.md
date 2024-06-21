@@ -82,3 +82,8 @@ bcra_baseurl=https://api.bcra.gob.ar/estadisticas/v1/
 bcra_principalesvariables=principalesvariables?Accept-Language=es-AR
 bcra_datosvariables=datosvariables/{variable}?fecha_desde={fechadesde}&fecha_hasta={fechahasta}&Accept-Language=es-AR
 ```
+
+## Backfill command
+``` bash
+airflow dags backfill BCRA_ETL -s 2024-06-01 -e 2024-06-20
+```
