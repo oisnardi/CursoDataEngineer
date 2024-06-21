@@ -60,7 +60,7 @@ Pwd: airflow
 
 ## Flujo del Script
 
-![Graph](images\Graph.jpg "Graph").
+![Graph](https://github.com/oisnardi/CursoDataEngineer/blob/main/images/Graph.jpg?raw=true "Graph")
 
 - 1- Carga las variables de configuración desde el archivo .env.
 - 2- Extrae y carga los datos de las siguientes variables:
