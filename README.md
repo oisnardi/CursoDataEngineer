@@ -82,7 +82,21 @@ aws_host = "your_redshift_host"
 aws_port = 5439
 ```
 
+## Versión python
+```
+Python 3.12.0
+```
+
 ## Backfill command
 ``` bash
 airflow dags backfill BCRA_ETL -s 2024-06-17 -e 2024-06-20
+```
+
+## Size image docker
+``` bash
+docker image ls
+```
+```
+REPOSITORY       TAG       IMAGE ID       CREATED        SIZE 
+python-airflow   latest    0914fab06e01   16 hours ago   840MB
 ```
