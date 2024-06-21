@@ -308,7 +308,7 @@ def CargaTipoCambioMinorista(**kwargs):
             raise AirflowException("CargaTipoCambioMinorista: Día no laborable, no se puede continuar")
         else:
             df=CargarVariable(variable, fecha)
-            kwargs['ti'].xcom_push(key='TipoCambioMinorista', value=df.to_json())
+            kwargs['ti'].xcom_push(key=f'TipoCambioMinorista_{fecha}', value=df.to_json())
     else:
         raise AirflowException("Error CargaTipoCambioMinorista variable inexistente, no se puede continuar")
         
@@ -325,7 +325,7 @@ def CargaTipoCambioMayorista (**kwargs):
             raise AirflowException("CargaTipoCambioMayorista: Día no laborable, no se puede continuar")
         else:
             df=CargarVariable(variable, fecha)
-            kwargs['ti'].xcom_push(key='TipoCambioMayorista', value=df.to_json())
+            kwargs['ti'].xcom_push(key=f'TipoCambioMayorista_{fecha}', value=df.to_json())
     else:
         raise AirflowException("Error CargaTipoCambioMayorista variable inexistente, no se puede continuar")
 
