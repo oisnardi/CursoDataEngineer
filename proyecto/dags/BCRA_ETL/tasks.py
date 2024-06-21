@@ -269,12 +269,9 @@ def PrincipalesVariablesBCRA(**kwargs):
     start_delay()
     #endregion
 
-def CargarVariable (variable, **kwargs):
-    execution_date = kwargs['logical_date']
-    fechahasta = execution_date.strftime("%Y-%m-%d")
-    
+def CargarVariable (variable, fechahasta):
     start_time = time.time()
-    print(f"Inicio carga {variable['title']} para la fecha: {execution_date}")
+    print(f"Inicio carga {variable['title']} para la fecha: {fechahasta}")
     #*****************************
 
     url_full = f"{bcra_baseurl}{bcra_datosvariables}"
@@ -295,9 +292,13 @@ def CargarVariable (variable, **kwargs):
 
     start_delay()
 
+    return df
     #endregion
 
 def CargaTipoCambioMinorista(**kwargs):
+    execution_date = kwargs['logical_date']
+    fecha = execution_date.strftime("%Y-%m-%d")
+    
     variable = get_variable_by_id(4)
     if (variable):
         ti = kwargs['ti']
@@ -306,11 +307,15 @@ def CargaTipoCambioMinorista(**kwargs):
         if (diahabil==False):
             raise AirflowException("CargaTipoCambioMinorista: Día no laborable, no se puede continuar")
         else:
-            CargarVariable(variable)
+            df=CargarVariable(variable, fecha)
+            kwargs['ti'].xcom_push(key='TipoCambioMinorista', value=df.to_json())
     else:
         raise AirflowException("Error CargaTipoCambioMinorista variable inexistente, no se puede continuar")
         
 def CargaTipoCambioMayorista (**kwargs):
+    execution_date = kwargs['logical_date']
+    fecha = execution_date.strftime("%Y-%m-%d")
+    
     variable = get_variable_by_id(5)
     if (variable):
         ti = kwargs['ti']
@@ -319,7 +324,8 @@ def CargaTipoCambioMayorista (**kwargs):
         if (diahabil==False):
             raise AirflowException("CargaTipoCambioMayorista: Día no laborable, no se puede continuar")
         else:
-            CargarVariable(variable)
+            df=CargarVariable(variable, fecha)
+            kwargs['ti'].xcom_push(key='TipoCambioMayorista', value=df.to_json())
     else:
         raise AirflowException("Error CargaTipoCambioMayorista variable inexistente, no se puede continuar")
 

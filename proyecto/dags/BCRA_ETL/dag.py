@@ -33,6 +33,7 @@ BC_dag = DAG(
 get_prin_var = PythonOperator(
     task_id='Principales_Variables_BCRA',
     python_callable=PrincipalesVariablesBCRA,
+    retries=0,
     dag=BC_dag,
     provide_context=True
 )
@@ -40,6 +41,7 @@ get_prin_var = PythonOperator(
 get_tipo_cambio_minorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Minorista',
     python_callable=CargaTipoCambioMinorista,
+    retries=0,
     dag=BC_dag,
     provide_context=True
 )
@@ -47,6 +49,7 @@ get_tipo_cambio_minorista = PythonOperator(
 get_tipo_cambio_mayorista = PythonOperator(
     task_id='Carga_Tipo_Cambio_Mayorista',
     python_callable=CargaTipoCambioMayorista,
+    retries=0,
     dag=BC_dag,
     provide_context=True
 )
@@ -58,6 +61,7 @@ get_tipo_cambio_mayorista = PythonOperator(
 val_variables = PythonOperator(
     task_id='Validar_Datos',
     python_callable=ValidarVariables,
+    retries=0,
     dag=BC_dag,
     provide_context=True
 )
@@ -65,6 +69,7 @@ val_variables = PythonOperator(
 validar_fecha_cotizacion = PythonOperator(
     task_id='Validar_fecha_cotizacion_task',
     python_callable=validar_dia_cotizacion,
+    retries=0,
     dag=BC_dag,
     provide_context=True
 )
@@ -72,6 +77,7 @@ validar_fecha_cotizacion = PythonOperator(
 validar_tipo_cambio_minorista = PythonOperator(
     task_id='Validar_tipo_cambio_minorista',
     python_callable=validar_tc_minorista,
+    retries=0,
     dag=BC_dag,
     provide_context=True
 )
@@ -79,6 +85,7 @@ validar_tipo_cambio_minorista = PythonOperator(
 validar_tipo_cambio_mayorista = PythonOperator(
     task_id='Validar_tipo_cambio_mayorista',
     python_callable=validar_tc_mayorista,
+    retries=0,
     dag=BC_dag,
     provide_context=True
 )

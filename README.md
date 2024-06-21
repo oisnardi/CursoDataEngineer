@@ -1,8 +1,9 @@
 # Curso DataEngineer CoderHouse
 
-# BCRA Data Extraction and Loading Script
+## Entrega Proyecto final:
 
-# Entrega Proyecto final:
+### Basado en APIs BCRA
+
 - Pipeline obtiene datos de 3 Apis del BCRA y utiliza 2 fuentes de datos locales en desde raw_data en formato JSon.
 
 - Los datos se almacenan en Data Warehouse en Amazon RedShift
@@ -22,7 +23,7 @@
 - Se agrega un Script en carpeta anexa, pero el mismo nos se necesita, el codigo tiene la capacidad de generar los scripts DDL para crear las tablas necesarias.
 
 Adicionales:
-- Se utiliza backfill con context entre tareas, para compartir datos.
+- Soporte de backfill con context entre tareas, para compartir datos.
 - Extración de datos desde archivos locales, ya mencionado
 
 ## Requisitos
@@ -60,30 +61,26 @@ Pwd: airflow
 ## Flujo del Script
 
 - 1- Carga las variables de configuración desde el archivo .env.
-- 2- Establece las fechas de hoy y ayer.
-- 3- Extrae y carga los datos de las siguientes variables:
-- 4- Principales variables BCRA
-  - 4.1- Tipo de Cambio Minorista
-  - 4.2- Tipo de Cambio Mayorista
-  - 4.3- Tasa de Política Monetaria
-  - 4.4- BADLAR en pesos de bancos privados
+- 2- Extrae y carga los datos de las siguientes variables:
+  - 2.1- Principales variables BCRA
+  - 2.2- Tipo de Cambio Minorista
+  - 2.3- Tipo de Cambio Mayorista
+
 
 
 ## Configuración
 El script utiliza un archivo .env para cargar las configuraciones necesarias. Crea un archivo llamado parameters.env en el mismo directorio que el script y agrega las siguientes variables:
 
 ```
-aws_host=your_redshift_host
-aws_db=your_redshift_database
-aws_port=your_redshift_port
-aws_usr=your_redshift_user
-aws_pwd=your_redshift_password
-bcra_baseurl=https://api.bcra.gob.ar/estadisticas/v1/
-bcra_principalesvariables=principalesvariables?Accept-Language=es-AR
-bcra_datosvariables=datosvariables/{variable}?fecha_desde={fechadesde}&fecha_hasta={fechahasta}&Accept-Language=es-AR
+bcra_baseurl = "https://api.bcra.gob.ar"
+bcra_principalesvariables = "/estadisticas/v2.0/principalesvariables"
+bcra_datosvariables = "/estadisticas/v2.0/DatosVariable/{variable}/{fechadesde}/{fechahasta}"
+
+aws_host = "your_redshift_host"
+aws_port = 5439
 ```
 
 ## Backfill command
 ``` bash
-airflow dags backfill BCRA_ETL -s 2024-06-01 -e 2024-06-20
+airflow dags backfill BCRA_ETL -s 2024-06-17 -e 2024-06-20
 ```
