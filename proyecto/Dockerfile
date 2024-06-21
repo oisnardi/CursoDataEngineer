@@ -11,6 +11,7 @@ WORKDIR /app
 # Establece variables de entorno necesarias para Airflow
 ENV AIRFLOW_HOME=/app/airflow
 ENV AIRFLOW__CORE__LOAD_EXAMPLES="false"
+ENV AIRFLOW__CORE__DEFAULT_TIMEZONE="America/Argentina/Buenos_Aires"
 
 # Instala dependencias necesarias
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,10 +27,17 @@ RUN pip install --no-cache-dir apache-airflow \
     && pip install --no-cache-dir python-dotenv redshift_connector pandas
 
 # Copia el archivo de DAG a la carpeta de Airflow
+# dags
 COPY ./dags /app/airflow/dags
+# keys
 COPY ./keys/db.txt /app/keys/db.txt
 COPY ./keys/user.txt /app/keys/user.txt
 COPY ./keys/pwd.txt /app/keys/pwd.txt
+COPY ./keys/email_login.txt /app/keys/email_login.txt
+COPY ./keys/email_pwd.txt /app/keys/email_pwd.txt
+# raw_data
+COPY ./raw_data/feriados.json /app/raw_data/feriados.json
+COPY ./raw_data/variables_bcra.json /app/raw_data/variables_bcra.json
 
 # Imprime el contenido del directorio de destino después de la copia
 RUN ls -la /app/keys
@@ -39,7 +47,7 @@ EXPOSE 8080
 
 # Inicializa la base de datos de Airflow y crea un usuario administrador
 RUN airflow db init 
-RUN airflow users create --username airflow --password airflow --firstname Admin --lastname User --role Admin --email admin@example.com
+RUN airflow users create --username airflow --password airflow --firstname Alejandro --lastname Isnardi --role Admin --email admin@example.com
 
 # Copia y establece el entrypoint
 COPY entrypoint.sh /entrypoint.sh

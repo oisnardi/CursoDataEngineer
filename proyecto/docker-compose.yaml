@@ -1,0 +1,17 @@
+services:
+  airflow:
+    container_name: ProyectoFinal
+    image: python-airflow
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - AIRFLOW_HOME=/app/airflow
+    volumes:
+      - ./dags:/app/airflow/dags
+      - ./logs:/app/airflow/logs
+      - ./plugins:/app/airflow/plugins
+      - ./variables_airflow.json:/app/airflow/variables_airflow.json
+    ports:
+      - "8080:8080"
+    entrypoint: ["/entrypoint.sh"]
