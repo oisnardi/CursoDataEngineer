@@ -2,18 +2,16 @@
 # Fecha: 17/06/2024
 # BRCR Helper
 
-from datetime import date, datetime, timedelta
+import redshift_connector
+from BCRA_ETL.helpers.time import log_time
+from BCRA_ETL.helpers.redshift import get_redshift_dtype, get_redshift_connection
 import json
 import os
 import time
-
 import requests
-import redshift_connector
 import pandas as pd
-import numpy as np
 from urllib3.exceptions import InsecureRequestWarning
 from airflow.exceptions import AirflowException
-
 from dotenv import dotenv_values
 
 #region Variables
@@ -22,8 +20,6 @@ from dotenv import dotenv_values
 dag_path = os.getcwd() 
 
 env_path= dag_path+"/airflow/dags/BCRA_ETL/"+"parameters.env"
-print(f"parameters file: {env_path}")
-
 config = dotenv_values(env_path)
 
 bcra_baseurl = config.get("bcra_baseurl")
@@ -40,33 +36,7 @@ headers = {
     'content-type': 'application/json; charset=utf8'
 }
 
-# AWS RedShift Settings
-aws_host = config.get("aws_host")
-aws_port = config.get("aws_port")
-with open(dag_path+'/keys/'+"db.txt",'r') as f:
-    aws_db= f.read()
-with open(dag_path+'/keys/'+"user.txt",'r') as f:
-    aws_usr= f.read()
-with open(dag_path+'/keys/'+"pwd.txt",'r') as f:
-    aws_pwd= f.read()
-
-# Seteamos las fechas a actualizar data
-#fechahoy = date.today()
-#fechahoy = datetime.strptime("19/06/2024", "%d/%m/%Y")
-#fechaayer = fechahoy - timedelta(days=1)
-#fechadesde= fechaayer.strftime("%Y-%m-%d")
-#fechahasta = fechahoy.strftime("%Y-%m-%d")
-
-#print(f"BaseURL: {bcra_baseurl}")
-#print(f"fechadesde: {fechadesde}")
-#print(f"fechahasta: {fechahasta}")
-print("\n")
-
 #endregion
-
-def log_time(message, start_time):
-    elapsed_time = time.time() - start_time
-    print(f"{message}: {elapsed_time:.2f} segundos")
 
 def get_data(url):
     # Realiza la solicitud GET a la API con los headers de autorización
@@ -170,31 +140,6 @@ def create_table_from_dataframe(conn, dataframe, table_name):
 
     print(f"Tabla '{table_name}' creada y datos cargados correctamente.")
 
-def get_redshift_dtype(dtype):
-    if dtype == np.int64:
-        return "INT"
-    elif dtype == np.float64:
-        return "FLOAT"
-    elif dtype == np.object_:
-        return "VARCHAR(255)"  # Adjust as needed for longer text
-    elif dtype == np.datetime64:
-        return "DATE"
-    elif dtype == 'datetime64[ns]':
-        return "DATE"
-    else:
-        raise ValueError(f"Unsupported Pandas data type: {dtype}")
-
-def get_redshift_connection():
-    print(f"Conectandose a la BD en la fecha: ") 
-    conn = redshift_connector.connect(
-        host=aws_host,
-        database=aws_db,
-        port=aws_port,
-        user=aws_usr,
-        password=aws_pwd
-        )
-    return conn
-
 def process_df(df, table_name, start_time):
     if df is None:
         print(f"Error tabla {table_name}")
@@ -215,12 +160,7 @@ def process_df(df, table_name, start_time):
 
         return True
 
-def start_delay():
-    #print("Delay")
-    for _ in range(4):
-        print("Please wait...", flush=True)
-        time.sleep(1)    
-    print("\n")
+
 
 def get_variable_by_id(id):
     file_path = dag_path + '/raw_data/' + "variables_bcra.json"
@@ -266,7 +206,6 @@ def PrincipalesVariablesBCRA(**kwargs):
 
     kwargs['ti'].xcom_push(key='PrincipalesVariablesBCRA', value=df.to_json())
 
-    start_delay()
     #endregion
 
 def CargarVariable (variable, fechahasta):
@@ -290,8 +229,6 @@ def CargarVariable (variable, fechahasta):
     df = get_data(url_full)
     process_df(df, table_name, start_time)
 
-    start_delay()
-
     return df
     #endregion
 
@@ -302,13 +239,14 @@ def CargaTipoCambioMinorista(**kwargs):
     variable = get_variable_by_id(4)
     if (variable):
         ti = kwargs['ti']
-        diahabil = ti.xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
-    
+        diahabil = ti.xcom_pull(key='diahabil', task_ids='Validar_fecha_cotizacion_task')
+        print(f"diahabil es {type(diahabil)}")
+              
         if (diahabil==False):
             raise AirflowException("CargaTipoCambioMinorista: Día no laborable, no se puede continuar")
         else:
             df=CargarVariable(variable, fecha)
-            ti.xcom_push(key=f'TipoCambioMinorista_{fecha}', value=df.to_json())
+            ti.xcom_push(key=f'TipoCambioMinorista', value=df.to_json())
     else:
         raise AirflowException("Error CargaTipoCambioMinorista variable inexistente, no se puede continuar")
         
@@ -319,13 +257,14 @@ def CargaTipoCambioMayorista (**kwargs):
     variable = get_variable_by_id(5)
     if (variable):
         ti = kwargs['ti']
-        diahabil = ti.xcom_pull(key='diahabil', task_ids='validar_fecha_cotizacion_task')
-    
+        diahabil = ti.xcom_pull(key='diahabil', task_ids='Validar_fecha_cotizacion_task')
+        print(f"diahabil es {type(diahabil)}")
+
         if (diahabil==False):
             raise AirflowException("CargaTipoCambioMayorista: Día no laborable, no se puede continuar")
         else:
             df=CargarVariable(variable, fecha)
-            ti.xcom_push(key=f'TipoCambioMayorista_{fecha}', value=df.to_json())
+            ti.xcom_push(key=f'TipoCambioMayorista', value=df.to_json())
     else:
         raise AirflowException("Error CargaTipoCambioMayorista variable inexistente, no se puede continuar")
 

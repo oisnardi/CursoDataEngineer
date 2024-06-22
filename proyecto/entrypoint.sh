@@ -1,4 +1,5 @@
 #!/bin/bash
+# entrypoint.sh
 
 # Inicializa la base de datos de Airflow
 airflow db init &&

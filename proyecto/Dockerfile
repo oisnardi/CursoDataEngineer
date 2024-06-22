@@ -10,8 +10,8 @@ WORKDIR /app
 
 # Establece variables de entorno necesarias para Airflow
 ENV AIRFLOW_HOME=/app/airflow
-ENV AIRFLOW__CORE__LOAD_EXAMPLES="false"
-ENV AIRFLOW__CORE__DEFAULT_TIMEZONE="America/Argentina/Buenos_Aires"
+ENV AIRFLOW__CORE__LOAD_EXAMPLES=false
+ENV AIRFLOW__CORE__DEFAULT_TIMEZONE=America/Argentina/Buenos_Aires
 
 # Instala dependencias necesarias
 RUN apt-get update && apt-get install -y --no-install-recommends \
