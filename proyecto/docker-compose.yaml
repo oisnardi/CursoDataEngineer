@@ -11,6 +11,9 @@ services:
       - ./dags:/app/airflow/dags
       - ./logs:/app/airflow/logs
       - ./plugins:/app/airflow/plugins
+      - ./raw_data/PrincipalesVariablesBCRA:/app/raw_data/PrincipalesVariablesBCRA
+      - ./raw_data/TipoCambioMayorista:/app/raw_data/TipoCambioMayorista
+      - ./raw_data/TipoCambioMinorista:/app/raw_data/TipoCambioMinorista
       - ./variables_airflow.json:/app/airflow/variables_airflow.json
     ports:
       - "8080:8080"

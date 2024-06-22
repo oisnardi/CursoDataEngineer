@@ -5,3 +5,6 @@ proyecto/dags/*/__pycache__/*
 proyecto/dags/BCRA_ETL/helpers/__pycache__
 proyecto/logs/
 proyecto/keys/*.txt
+proyecto/raw_data/PrincipalesVariablesBCRA/*.json
+proyecto/raw_data/TipoCambioMayorista/*.json
+proyecto/raw_data/TipoCambioMinorista/*.json

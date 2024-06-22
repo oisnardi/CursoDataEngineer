@@ -6,7 +6,7 @@ from datetime import timedelta, datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 
-from BCRA_ETL.tasks import PrincipalesVariablesBCRA, CargaTipoCambioMinorista, CargaTipoCambioMayorista
+from BCRA_ETL.tasks import GetPrincipalesVariablesBCRA, CargaTipoCambioMinorista, CargaTipoCambioMayorista
 from BCRA_ETL.validar import validar_dia_cotizacion, ValidarVariables, validar_tc_minorista, validar_tc_mayorista
 
 # Argumentos por defecto para el DAG
@@ -32,7 +32,7 @@ BC_dag = DAG(
 
 get_prin_var = PythonOperator(
     task_id='Principales_Variables_BCRA',
-    python_callable=PrincipalesVariablesBCRA,
+    python_callable=GetPrincipalesVariablesBCRA,
     retries=0,
     dag=BC_dag,
     provide_context=True

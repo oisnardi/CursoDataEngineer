@@ -56,6 +56,7 @@ def get_data(url):
         raise AirflowException(f"Error en la solicitud: {e}")
 
 def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
+    # Transformación datos
     if "fecha" in df.columns:
         df["fecha"] = pd.to_datetime(df["fecha"], format=r'%Y-%m-%d')
     if "valor" in df.columns:
@@ -64,6 +65,8 @@ def parse_cols(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def create_table_from_dataframe(conn, dataframe, table_name):
+    # Crear tabla en DW si no existe
+    
     dtypes = dataframe.dtypes
     cols = list(dtypes.index)
     tipos = list(dtypes.values)
@@ -96,8 +99,6 @@ def create_table_from_dataframe(conn, dataframe, table_name):
     except redshift_connector.error.ProgrammingError as exception:
         print("*** create_table_from_dataframe ***")
         print(dict(exception.args[0]).get('M'))
-
-
 
     # Convert DataFrame to list of tuples
     fechas = dataframe["fecha"].dt.strftime('%Y-%m-%d').tolist()
@@ -160,8 +161,6 @@ def process_df(df, table_name, start_time):
 
         return True
 
-
-
 def get_variable_by_id(id):
     file_path = dag_path + '/raw_data/' + "variables_bcra.json"
 
@@ -188,7 +187,7 @@ def get_variable_by_id(id):
  
     return variable_dict
  
-def PrincipalesVariablesBCRA(**kwargs):
+def GetPrincipalesVariablesBCRA(**kwargs):
     execution_date = kwargs['logical_date']
     print(f"Adquiriendo Principales Variables BCRA para la fecha: {execution_date}")
     #*****************************
@@ -205,6 +204,9 @@ def PrincipalesVariablesBCRA(**kwargs):
     process_df(df, table_name, start_time)
 
     kwargs['ti'].xcom_push(key='PrincipalesVariablesBCRA', value=df.to_json())
+    
+    file_path = f"{dag_path}/raw_data/PrincipalesVariablesBCRA/data_{execution_date.strftime("%Y-%m-%d")}.json"
+    df.to_json(file_path)
 
     #endregion
 
@@ -247,6 +249,8 @@ def CargaTipoCambioMinorista(**kwargs):
         else:
             df=CargarVariable(variable, fecha)
             ti.xcom_push(key=f'TipoCambioMinorista', value=df.to_json())
+            file_path = f"{dag_path}/raw_data/TipoCambioMinorista/data_{execution_date.strftime("%Y-%m-%d")}.json"
+            df.to_json(file_path)
     else:
         raise AirflowException("Error CargaTipoCambioMinorista variable inexistente, no se puede continuar")
         
@@ -265,7 +269,10 @@ def CargaTipoCambioMayorista (**kwargs):
         else:
             df=CargarVariable(variable, fecha)
             ti.xcom_push(key=f'TipoCambioMayorista', value=df.to_json())
+            file_path = f"{dag_path}/raw_data/TipoCambioMayorista/data_{execution_date.strftime("%Y-%m-%d")}.json"
+            df.to_json(file_path)
     else:
         raise AirflowException("Error CargaTipoCambioMayorista variable inexistente, no se puede continuar")
+
 
 
